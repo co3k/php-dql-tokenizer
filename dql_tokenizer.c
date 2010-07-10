@@ -1,4 +1,4 @@
-#include "php_dql-tokenizer.h"
+#include "php_dql_tokenizer.h"
 
 zend_module_entry dql_tokenizer_module_entry = {
 #if ZEND_MODULE_API_NO >= 20010901
@@ -18,5 +18,5 @@ zend_module_entry dql_tokenizer_module_entry = {
 };
 
 #ifdef COMPILE_DL_DQL_TOKENIZER
-ZEND_GET_MODULE(sample)
+ZEND_GET_MODULE(dql_tokenizer)
 #endif
