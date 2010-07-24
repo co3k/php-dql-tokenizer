@@ -1,5 +1,8 @@
 #include "php_dql_tokenizer.h"
 
+#include "ext/standard/php_string.h"
+#include "ext/standard/php_smart_str.h"
+
 #ifdef COMPILE_DL_DQL_TOKENIZER
 ZEND_GET_MODULE(dql_tokenizer)
 #endif
@@ -36,7 +39,53 @@ static PHP_FUNCTION(dql_clause_explode)
 
 static PHP_FUNCTION(dql_get_split_regexp_from_array)
 {
-  php_error_docref(NULL TSRMLS_CC, E_ERROR, "This function is not implemented. Call Doctrine_Query_Tokenizer::getSplitRegExpFromArray() instead.");
+  zval *array, **entry;
+  HashPosition pos;
+
+  smart_str result = {0};
+  smart_str_appendl(&result, "#(", 2);
+
+  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "a", &array)) {
+    return;
+  }
+
+  zend_hash_internal_pointer_reset_ex(Z_ARRVAL_P(array), &pos);
+  while (zend_hash_get_current_data_ex(Z_ARRVAL_P(array), (void **)&entry, &pos) == SUCCESS) {
+    convert_to_string_ex(entry);
+
+    if (1 <= pos->h) {
+      smart_str_appendl(&result, "|", 1);
+    }
+
+    if (strcmp(" ", Z_STRVAL_PP(entry)) == 0) {
+      smart_str_appendl(&result, "\\s", 2);
+    } else {
+      zval *pre, *filtered;
+      MAKE_STD_ZVAL(pre);
+      ZVAL_STRING(pre, Z_STRVAL_PP(entry), 1);
+      MAKE_STD_ZVAL(filtered);
+
+      /* filtering by zif_preg_quote() */
+      PHP_DQL_FUNC1(preg_quote, filtered, this_ptr, pre);
+      smart_str_appendl(&result, Z_STRVAL_P(filtered), Z_STRLEN_P(filtered));
+
+      zval_ptr_dtor(&pre);
+      zval_ptr_dtor(&filtered);
+    }
+
+    zend_hash_move_forward_ex(Z_ARRVAL_P(array), &pos);
+  }
+
+  smart_str_appendl(&result, ")#", 2);
+
+  smart_str_0(&result);
+
+  if (result.len) {
+    RETURN_STRINGL(result.c, result.len, 0);
+  } else {
+    smart_str_free(&result);
+    RETURN_EMPTY_STRING();
+  }
 }
 
 static PHP_FUNCTION(dql_clause_explode_regexp)
