@@ -14,6 +14,40 @@
 extern zend_module_entry dql_tokenizer_module_entry;
 #define phpext_dql_tokenizer_ptr &dql_tokenizer_module_entry
 
+/*
+ For keeping compatible with PHP 5.2
+*/
+#ifndef Z_REFCOUNT_P
+
+#define Z_REFCOUNT_PP(ppz)             ((*(ppz))->refcount)
+#define Z_SET_REFCOUNT_PP(ppz, rc)     ((*(ppz))->refcount = rc)
+#define Z_ADDREF_PP(ppz)             (++(*(ppz))->refcount)
+#define Z_DELREF_PP(ppz)             (--(*(ppz))->refcount)
+#define Z_ISREF_PP(ppz)                ((*(ppz))->is_ref)
+#define Z_SET_ISREF_PP(ppz)            ((*(ppz))->is_ref = 1)
+#define Z_UNSET_ISREF_PP(ppz)          ((*(ppz))->is_ref = 0)
+#define Z_SET_ISREF_TO_PP(ppz, isref)  ((*(ppz))->is_ref = isref)
+
+#define Z_REFCOUNT_P(pz)            ((pz)->refcount)
+#define Z_SET_REFCOUNT_P(z, rc)     ((pz)->refcount = rc)
+#define Z_ADDREF_P(pz)            (++(pz)->refcount)
+#define Z_DELREF_P(pz)            (--(pz)->refcount)
+#define Z_ISREF_P(pz)               ((pz)->is_ref)
+#define Z_SET_ISREF_P(pz)           ((pz)->is_ref = 1)
+#define Z_UNSET_ISREF_P(pz)         ((pz)->is_ref = 0)
+#define Z_SET_ISREF_TO_P(z, isref)  ((pz)->is_ref = isref)
+
+#define Z_REFCOUNT(z)             ((z).refcount)
+#define Z_SET_REFCOUNT(z, rc)     ((z).refcount = rc)
+#define Z_ADDREF(z)             (++(z).refcount)
+#define Z_DELREF(z)             (--(z).refcount)
+#define Z_ISREF(z)                ((z).is_ref)
+#define Z_SET_ISREF(z)            ((z).is_ref = 1)
+#define Z_UNSET_ISREF(z)          ((z).is_ref = 0)
+#define Z_SET_ISREF_TO(z, isref)  ((z).is_ref = isref)
+
+#endif
+
 /**
  * The following calling internal function helper is based some useful macros in mongo-php-driver.
  * http://github.com/mongodb/mongo-php-driver
