@@ -110,7 +110,84 @@ static PHP_FUNCTION(dql_merge_bracket_terms)
 
 static PHP_FUNCTION(dql_quoted_string_explode)
 {
-  php_error_docref(NULL TSRMLS_CC, E_ERROR, "This function is not implemented. Call Doctrine_Query_Tokenizer::quotedStringExplode() instead.");
+  char *str;
+  int len;
+
+  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &str, &len)) {
+    return;
+  }
+
+  zval *pattern, *input, *limit, *flags, *tmp;
+  MAKE_STD_ZVAL(pattern); ZVAL_STRING(pattern, "#(\\'|''|'|\\\"|\"\"|\")#", 1);
+  MAKE_STD_ZVAL(input); ZVAL_STRING(input, str, 1);
+  MAKE_STD_ZVAL(limit); ZVAL_LONG(limit, -1);
+  MAKE_STD_ZVAL(flags); ZVAL_LONG(flags, 2); /* PREG_SPLIT_DELIM_CAPTURE */
+  MAKE_STD_ZVAL(tmp);
+
+  PHP_DQL_FUNC4(preg_split, tmp, this_ptr, pattern, input, limit, flags);
+
+  char *mode = '\0', *string_key;
+  int i = 0, string_key_len;
+  ulong key;
+  zval **val, **data;
+  HashPosition pos;
+
+  array_init(return_value);
+
+  zend_hash_internal_pointer_reset_ex(Z_ARRVAL_P(tmp), &pos);
+  while (zend_hash_get_current_data_ex(Z_ARRVAL_P(tmp), (void **)&val, &pos) == SUCCESS) {
+    convert_to_string_ex(val);
+
+    zend_hash_get_current_key_ex(Z_ARRVAL_P(tmp), &string_key, &string_key_len, &key, 0, &pos);
+
+    if (key & 1) {
+      if (mode == '\0') {
+        if (strcmp("'", Z_STRVAL_PP(val)) == 0 || strcmp("\"", Z_STRVAL_PP(val)) == 0) {
+          mode = Z_STRVAL_PP(val);
+          i++;
+        }
+      } else if (strcmp(mode, Z_STRVAL_PP(val)) == 0) {
+        if (zend_hash_index_find(Z_ARRVAL_P(return_value), i, (void **)&data) == FAILURE) {
+          add_index_stringl(return_value, i, Z_STRVAL_PP(val), Z_STRLEN_PP(val), 1);
+        } else {
+          smart_str s = {0};
+
+          smart_str_appendl(&s, Z_STRVAL_PP(data), Z_STRLEN_PP(data));
+          smart_str_appendl(&s, Z_STRVAL_PP(val), Z_STRLEN_PP(val));
+
+          smart_str_0(&s);
+
+          add_index_stringl(return_value, i, s.c, s.len, 1);
+        }
+
+        mode = '\0';
+        i++;
+
+        zend_hash_move_forward_ex(Z_ARRVAL_P(tmp), &pos);
+        continue;
+      }
+    }
+
+    if (zend_hash_index_find(Z_ARRVAL_P(return_value), i, (void **)&data) == FAILURE) {
+      add_index_stringl(return_value, i, Z_STRVAL_PP(val), Z_STRLEN_PP(val), 1);
+    } else {
+      smart_str s = {0};
+      smart_str_appendl(&s, Z_STRVAL_PP(data), Z_STRLEN_PP(data));
+      smart_str_appendl(&s, Z_STRVAL_PP(val), Z_STRLEN_PP(val));
+
+      smart_str_0(&s);
+
+      add_index_stringl(return_value, i, s.c, s.len, 1);
+    }
+
+    zend_hash_move_forward_ex(Z_ARRVAL_P(tmp), &pos);
+  }
+
+  zval_ptr_dtor(&pattern);
+  zval_ptr_dtor(&input);
+  zval_ptr_dtor(&limit);
+  zval_ptr_dtor(&flags);
+  zval_ptr_dtor(&tmp);
 }
 
 static function_entry dql_tokenizer_functions[] = {

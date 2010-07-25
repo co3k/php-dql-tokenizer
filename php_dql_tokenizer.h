@@ -43,4 +43,9 @@ extern zend_module_entry dql_tokenizer_module_entry;
 #define PHP_DQL_FUNC1(funcname, retval, thisptr, param1)   \
   PHP_DQL_FUNC_HELPER(funcname, retval, thisptr, 1, param1);
 
+#define PHP_DQL_FUNC4(funcname, retval, thisptr, param1, param2, param3, param4)   \
+  DQL_PUSH_PARAM(param1); DQL_PUSH_PARAM(param2); DQL_PUSH_PARAM(param3); \
+  PHP_DQL_FUNC_HELPER(funcname, retval, thisptr, 4, param4);  \
+  DQL_POP_PARAM(); DQL_POP_PARAM(); DQL_POP_PARAM();
+
 #endif  /* end of "ifndef  PHP_DQL_TOKENIZER_H" */
