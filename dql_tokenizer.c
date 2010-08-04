@@ -1,6 +1,7 @@
 #include "php_dql_tokenizer.h"
 
 #include "ext/standard/php_string.h"
+#include "ext/standard/php_array.h"
 #include "ext/standard/php_smart_str.h"
 
 #ifdef COMPILE_DL_DQL_TOKENIZER
@@ -66,7 +67,7 @@ static PHP_FUNCTION(dql_get_split_regexp_from_array)
       MAKE_STD_ZVAL(filtered);
 
       /* filtering by zif_preg_quote() */
-      PHP_DQL_FUNC1(preg_quote, filtered, this_ptr, pre);
+      zend_function *func; PHP_DQL_FUNC1(preg_quote, filtered, this_ptr, pre);
       smart_str_appendl(&result, Z_STRVAL_P(filtered), Z_STRLEN_P(filtered));
 
       zval_ptr_dtor(&pre);
@@ -95,7 +96,131 @@ static PHP_FUNCTION(dql_clause_explode_regexp)
 
 static PHP_FUNCTION(dql_clause_explode_count_brackets)
 {
-  php_error_docref(NULL TSRMLS_CC, E_ERROR, "This function is not implemented. Call Doctrine_Query_Tokenizer::clauseExplodeCountBrackets() instead.");
+  char *str, *regexp, *e1 = "(", *e2 = ")";
+  int str_len, regexp_len, e1_len, e2_len;
+
+  array_init(return_value);
+
+  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss|ss", &str, &str_len, &regexp, &regexp_len, &e1, &e1_len, &e2, &e2_len)) {
+    return;
+  }
+
+  zval *quoteTerms, *tmpStr, *tmpRegexp, *tmpE1, *tmpE2;
+  MAKE_STD_ZVAL(quoteTerms);
+  MAKE_STD_ZVAL(tmpStr); ZVAL_STRING(tmpStr, str, 1);
+  MAKE_STD_ZVAL(tmpRegexp); ZVAL_STRING(tmpRegexp, regexp, 1);
+  MAKE_STD_ZVAL(tmpE1); ZVAL_STRING(tmpE1, e1, 1);
+  MAKE_STD_ZVAL(tmpE2); ZVAL_STRING(tmpE2, e2, 1);
+  zend_function *func; PHP_DQL_FUNC1(dql_quoted_string_explode, quoteTerms, this_ptr, tmpStr);
+
+  char  *string_key;
+  int i = 0, string_key_len;
+  zval **val;
+  ulong key;
+  HashPosition pos;
+
+  zend_hash_internal_pointer_reset_ex(Z_ARRVAL_P(quoteTerms), &pos);
+  while (zend_hash_get_current_data_ex(Z_ARRVAL_P(quoteTerms), (void **)&val, &pos) == SUCCESS) {
+    convert_to_string_ex(val);
+    zend_hash_get_current_key_ex(Z_ARRVAL_P(quoteTerms), &string_key, &string_key_len, &key, 0, &pos);
+
+    if (key & 1) {
+      zval **pterms, **pt0, **pt1, **pt2;
+      if (zend_hash_index_find(Z_ARRVAL_P(return_value), i - 1, (void **)&pterms) == SUCCESS) {
+          zend_hash_index_find(Z_ARRVAL_PP(pterms), 1, (void **)&pt1);
+          convert_to_string_ex(pt1);
+          if (0 == Z_STRLEN_PP(pt1)) {
+            zend_hash_index_find(Z_ARRVAL_PP(pterms), 0, (void **)&pt0); convert_to_string_ex(pt0);
+
+            smart_str s = {0};
+            smart_str_appendl(&s, Z_STRVAL_PP(pt0), Z_STRLEN_PP(pt0));
+            smart_str_appendl(&s, Z_STRVAL_PP(val), Z_STRLEN_PP(val));
+            smart_str_0(&s);
+
+            add_index_stringl(*pterms, 0, s.c, s.len, 1);
+          } else {
+            zval *tmpArr;
+            MAKE_STD_ZVAL(tmpArr);
+            array_init(tmpArr);
+
+            add_next_index_stringl(tmpArr, Z_STRVAL_PP(val), Z_STRLEN_PP(val), 1);
+            add_next_index_stringl(tmpArr, "", 0, 1);
+            add_next_index_long(tmpArr, 0);
+
+            add_index_zval(pterms, i++, tmpArr);
+          }
+      }
+    } else {
+      zval *subterms, *_subterms, *tmpVal;
+      MAKE_STD_ZVAL(subterms); array_init(subterms);
+      MAKE_STD_ZVAL(_subterms);
+      MAKE_STD_ZVAL(tmpVal); ZVAL_STRING(tmpVal, Z_STRVAL_PP(val), 1);
+      zend_function *func; PHP_DQL_FUNC2(dql_clause_explode_non_quoted, _subterms, this_ptr, tmpVal, tmpRegexp);
+
+      char  *sub_string_key;
+      int sub_string_key_len;
+      zval **sub;
+      ulong sub_key;
+      HashPosition sub_pos;
+
+      zend_hash_internal_pointer_reset_ex(Z_ARRVAL_P(_subterms), &sub_pos);
+      while (zend_hash_get_current_data_ex(Z_ARRVAL_P(_subterms), (void **)&sub, &sub_pos) == SUCCESS) {
+        zval *c1, *c2, *ts, **tmpSub0, **tmpSub1;
+        MAKE_STD_ZVAL(c1); MAKE_STD_ZVAL(c2);
+
+        zend_hash_index_find(Z_ARRVAL_PP(sub), 0, (void **)&tmpSub0);
+        zend_hash_index_find(Z_ARRVAL_PP(sub), 1, (void **)&tmpSub1);
+        MAKE_STD_ZVAL(ts); ZVAL_STRING(ts, Z_STRVAL_PP(tmpSub0), 1);
+
+        zend_function *func;
+        PHP_DQL_FUNC2(substr_count, c1, this_ptr, ts, tmpE1);
+        PHP_DQL_FUNC2(substr_count, c2, this_ptr, ts, tmpE2);
+
+        zval *_v; MAKE_STD_ZVAL(_v); array_init(_v);
+        add_next_index_string(_v, Z_STRVAL_PP(tmpSub0), 1);
+        add_next_index_string(_v, Z_STRVAL_PP(tmpSub1), 1);
+        add_next_index_long(_v, (Z_LVAL_P(c1) - Z_LVAL_P(c2)));
+        add_next_index_zval(subterms, _v);
+
+        zend_hash_move_forward_ex(Z_ARRVAL_P(_subterms), &sub_pos);
+      }
+
+      if (i > 0) {
+        zval **pterms, **pt0, **pt1, **pt2;
+        if (zend_hash_index_find(Z_ARRVAL_P(return_value), i - 1, (void **)&pterms) == SUCCESS) {
+          zend_hash_index_find(Z_ARRVAL_PP(pterms), 1, (void **)&pt1);
+          convert_to_string_ex(pt1);
+          if (0 == Z_STRLEN_PP(pt1)) {
+            zval *first, **f0, **f1, **f2, *uba;
+            smart_str s = {0};
+            MAKE_STD_ZVAL(first);
+
+            zend_function *func; PHP_DQL_FUNC1(array_shift, first, this_ptr, subterms);
+
+            zend_hash_index_find(Z_ARRVAL_P(first), 0, (void **)&f0); convert_to_string_ex(f0);
+            zend_hash_index_find(Z_ARRVAL_P(first), 1, (void **)&f1); convert_to_string_ex(f1);
+            zend_hash_index_find(Z_ARRVAL_P(first), 2, (void **)&f2);
+
+            zend_hash_index_find(Z_ARRVAL_PP(pterms), 0, (void **)&pt0); convert_to_string_ex(pt0);
+            zend_hash_index_find(Z_ARRVAL_PP(pterms), 2, (void **)&pt2);
+
+            smart_str_appendl(&s, Z_STRVAL_PP(pt0), Z_STRLEN_PP(pt0));
+            smart_str_appendl(&s, Z_STRVAL_PP(f0), Z_STRLEN_PP(f0));
+            smart_str_0(&s);
+
+            add_index_stringl(*pterms, 0, s.c, s.len, 1);
+            add_index_stringl(*pterms, 1, Z_STRVAL_PP(f1), Z_STRLEN_PP(f1), 1);
+            add_index_long(*pterms, 2, Z_LVAL_PP(pt2) + Z_LVAL_PP(f2));
+          }
+        }
+      }
+
+      php_array_merge(Z_ARRVAL_P(return_value), Z_ARRVAL_P(subterms), 0 TSRMLS_CC);
+      i += zend_hash_num_elements(Z_ARRVAL_P(subterms));
+    }
+
+    zend_hash_move_forward_ex(Z_ARRVAL_P(quoteTerms), &pos);
+  }
 }
 
 static PHP_FUNCTION(dql_clause_explode_non_quoted)
@@ -114,7 +239,7 @@ static PHP_FUNCTION(dql_clause_explode_non_quoted)
   MAKE_STD_ZVAL(flags); ZVAL_LONG(flags, 2); /* PREG_SPLIT_DELIM_CAPTURE */
   MAKE_STD_ZVAL(tmp);
 
-  PHP_DQL_FUNC4(preg_split, tmp, this_ptr, pattern, input, limit, flags);
+  zend_function *func; PHP_DQL_FUNC4(preg_split, tmp, this_ptr, pattern, input, limit, flags);
 
   char  *string_key;
   int i = 0, string_key_len;
@@ -180,7 +305,7 @@ static PHP_FUNCTION(dql_quoted_string_explode)
   MAKE_STD_ZVAL(flags); ZVAL_LONG(flags, 2); /* PREG_SPLIT_DELIM_CAPTURE */
   MAKE_STD_ZVAL(tmp);
 
-  PHP_DQL_FUNC4(preg_split, tmp, this_ptr, pattern, input, limit, flags);
+  zend_function *func; PHP_DQL_FUNC4(preg_split, tmp, this_ptr, pattern, input, limit, flags);
 
   char *mode = '\0', *string_key;
   int i = 0, string_key_len;

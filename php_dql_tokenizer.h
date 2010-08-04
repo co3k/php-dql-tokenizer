@@ -65,17 +65,21 @@ extern zend_module_entry dql_tokenizer_module_entry;
 #endif
 
 #define PHP_DQL_FUNC_HELPER(funcname, retval, thisptr, num, param) \
-  zend_function *func;  \
   zend_hash_find(CG(function_table), #funcname, sizeof(#funcname), (void **)&func); \
   DQL_PUSH_PARAM(param); DQL_PUSH_PARAM((void*)num);        \
   DQL_PUSH_EO_PARAM();              \
   func->internal_function.handler(num, retval, NULL, thisptr, 0 TSRMLS_CC); \
   DQL_POP_EO_PARAM();     \
-  DQL_POP_PARAM(); DQL_POP_PARAM();
+  DQL_POP_PARAM(); DQL_POP_PARAM(); \
 
 /* push parameters, call function, pop parameters */
 #define PHP_DQL_FUNC1(funcname, retval, thisptr, param1)   \
   PHP_DQL_FUNC_HELPER(funcname, retval, thisptr, 1, param1);
+
+#define PHP_DQL_FUNC2(funcname, retval, thisptr, param1, param2)   \
+  DQL_PUSH_PARAM(param1); \
+  PHP_DQL_FUNC_HELPER(funcname, retval, thisptr, 2, param2);  \
+  DQL_POP_PARAM();
 
 #define PHP_DQL_FUNC4(funcname, retval, thisptr, param1, param2, param3, param4)   \
   DQL_PUSH_PARAM(param1); DQL_PUSH_PARAM(param2); DQL_PUSH_PARAM(param3); \
