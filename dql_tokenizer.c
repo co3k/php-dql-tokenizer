@@ -89,7 +89,54 @@ static PHP_FUNCTION(dql_quote_explode)
 
 static PHP_FUNCTION(dql_sql_explode)
 {
-  php_error_docref(NULL TSRMLS_CC, E_ERROR, "This function is not implemented. Call Doctrine_Query_Tokenizer::sqlExplode() instead.");
+  zval *d = NULL, *_d;
+  char *str, *e1 = "(", *e2 = ")";
+  int str_len, e1_len, e2_len;
+
+  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|zss", &str, &str_len, &d, &e1, &e1_len, &e2, &e2_len)) {
+    return;
+  }
+
+  if (d == NULL)
+  {
+    MAKE_STD_ZVAL(d);
+    ZVAL_STRING(d, " ", 1);
+  }
+
+  MAKE_STD_ZVAL(_d);
+  if (IS_STRING == Z_TYPE(*d))
+  {
+    array_init(_d);
+
+    add_next_index_stringl(_d, Z_STRVAL_P(d), Z_STRLEN_P(d), 1);
+  }
+  else
+  {
+    ZVAL_ZVAL(_d, d, 1, 1);
+  }
+
+  zval *terms, *tmpStr, *tmpE1, *tmpE2;
+  MAKE_STD_ZVAL(terms);
+  MAKE_STD_ZVAL(tmpStr); ZVAL_STRING(tmpStr, str, 1);
+  MAKE_STD_ZVAL(tmpE1); ZVAL_STRING(tmpE1, e1, 1);
+  MAKE_STD_ZVAL(tmpE2); ZVAL_STRING(tmpE2, e2, 1);
+
+  zend_function *func; PHP_DQL_FUNC4(dql_clause_explode, terms, this_ptr, tmpStr, _d, tmpE1, tmpE2);
+
+  zval **val;
+  HashPosition pos;
+
+  array_init(return_value);
+
+  zend_hash_internal_pointer_reset_ex(Z_ARRVAL_P(terms), &pos);
+  while (zend_hash_get_current_data_ex(Z_ARRVAL_P(terms), (void **)&val, &pos) == SUCCESS) {
+    zval **vs;
+    zend_hash_index_find(Z_ARRVAL_PP(val), 0, (void **)&vs); convert_to_string_ex(vs);
+
+    add_next_index_stringl(return_value, Z_STRVAL_PP(vs), Z_STRLEN_PP(vs), 1);
+
+    zend_hash_move_forward_ex(Z_ARRVAL_P(terms), &pos);
+  }
 }
 
 static PHP_FUNCTION(dql_clause_explode)
