@@ -93,7 +93,34 @@ static PHP_FUNCTION(dql_get_split_regexp_from_array)
 
 static PHP_FUNCTION(dql_clause_explode_regexp)
 {
-  php_error_docref(NULL TSRMLS_CC, E_ERROR, "This function is not implemented. Call Doctrine_Query_Tokenizer::clauseExplodeRegExp() instead.");
+  char *str, *regexp, *e1 = "(", *e2 = ")";
+  int str_len, regexp_len, e1_len, e2_len;
+
+  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss|ss", &str, &str_len, &regexp, &regexp_len, &e1, &e1_len, &e2, &e2_len)) {
+    return;
+  }
+
+  array_init(return_value);
+
+  zval *tmpStr, *tmpRegexp, *tmpE1, *tmpE2, *tmpTerms;
+  MAKE_STD_ZVAL(tmpStr); ZVAL_STRING(tmpStr, str, 1);
+  MAKE_STD_ZVAL(tmpRegexp); ZVAL_STRING(tmpRegexp, regexp, 1);
+  MAKE_STD_ZVAL(tmpE1); ZVAL_STRING(tmpE1, e1, 1);
+  MAKE_STD_ZVAL(tmpE2); ZVAL_STRING(tmpE2, e2, 1);
+  MAKE_STD_ZVAL(tmpTerms); array_init(tmpTerms);
+
+  zend_function *func;
+  PHP_DQL_FUNC4(dql_clause_explode_count_brackets, tmpTerms, this_ptr, tmpStr, tmpRegexp, tmpE1, tmpE2);
+  PHP_DQL_FUNC1(dql_merge_bracket_terms, return_value, this_ptr, tmpTerms);
+
+  zval **val;
+  HashPosition pos;
+
+  zend_hash_internal_pointer_reset_ex(Z_ARRVAL_P(return_value), &pos);
+  while (zend_hash_get_current_data_ex(Z_ARRVAL_P(return_value), (void **)&val, &pos) == SUCCESS) {
+    zend_hash_index_del(Z_ARRVAL_PP(val), 2);
+    zend_hash_move_forward_ex(Z_ARRVAL_P(return_value), &pos);
+  }
 }
 
 static PHP_FUNCTION(dql_clause_explode_count_brackets)
