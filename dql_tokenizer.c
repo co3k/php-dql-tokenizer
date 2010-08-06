@@ -17,7 +17,18 @@ static PHP_FUNCTION(dql_tokenize_query)
 
 static PHP_FUNCTION(dql_bracket_trim)
 {
-  php_error_docref(NULL TSRMLS_CC, E_ERROR, "This function is not implemented. Call Doctrine_Query_Tokenizer::bracketTrim() instead.");
+  char *str, *e1 = "(", *e2 = ")";
+  int str_len, e1_len, e2_len;
+
+  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|ss", &str, &str_len, &e1, &e1_len, &e2, &e2_len)) {
+    return;
+  }
+
+  if (str[0] == '(' && str[str_len - 1] == ')') {
+    RETURN_STRINGL(str + 1, str_len - 2, 1);
+  } else {
+    RETURN_STRINGL(str, str_len, 1);
+  }
 }
 
 static PHP_FUNCTION(dql_bracket_explode)
