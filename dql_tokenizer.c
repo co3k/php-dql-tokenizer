@@ -37,7 +37,22 @@ static PHP_FUNCTION(dql_sql_explode)
 
 static PHP_FUNCTION(dql_clause_explode)
 {
-  php_error_docref(NULL TSRMLS_CC, E_ERROR, "This function is not implemented. Call Doctrine_Query_Tokenizer::clauseExplode() instead.");
+  zval **d, *regexp, *tmpStr, *tmpE1, *tmpE2;
+  char *str, *e1 = "(", *e2 = ")";
+  int str_len, e1_len, e2_len;
+
+  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sa|ss", &str, &str_len, &d, &e1, &e1_len, &e2, &e2_len)) {
+    return;
+  }
+
+  MAKE_STD_ZVAL(tmpStr); ZVAL_STRING(tmpStr, str, 1);
+  MAKE_STD_ZVAL(tmpE1); ZVAL_STRING(tmpE1, e1, 1);
+  MAKE_STD_ZVAL(tmpE2); ZVAL_STRING(tmpE2, e2, 1);
+  MAKE_STD_ZVAL(regexp);
+
+  zend_function *func;
+  PHP_DQL_FUNC1(dql_get_split_regexp_from_array, regexp, this_ptr, d);
+  PHP_DQL_FUNC4(dql_clause_explode_regexp, return_value, this_ptr, tmpStr, regexp, tmpE1, tmpE2);
 }
 
 static PHP_FUNCTION(dql_get_split_regexp_from_array)
