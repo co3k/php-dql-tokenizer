@@ -12,7 +12,92 @@ ZEND_GET_MODULE(dql_tokenizer)
 
 static PHP_FUNCTION(dql_tokenize_query)
 {
-  php_error_docref(NULL TSRMLS_CC, E_ERROR, "This function is not implemented. Call Doctrine_Query_Tokenizer::tokenizeQuery() instead.");
+  char *query;
+  int query_len;
+
+  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &query, &query_len)) {
+    return;
+  }
+
+  array_init(return_value);
+
+  zval *tokens, *_query;
+  MAKE_STD_ZVAL(tokens);
+  MAKE_STD_ZVAL(_query); ZVAL_STRINGL(_query, query, query_len, 1);
+  zend_function *func; PHP_DQL_FUNC1(dql_sql_explode, tokens, this_ptr, _query);
+
+  char *string_key, *p = NULL;
+  int i = 0, string_key_len;
+  zval **token, **pre, **next;
+  ulong index;
+  HashPosition pos;
+
+  zend_hash_internal_pointer_reset_ex(Z_ARRVAL_P(tokens), &pos);
+  while (zend_hash_get_current_data_ex(Z_ARRVAL_P(tokens), (void **)&token, &pos) == SUCCESS) {
+    char *t;
+    convert_to_string_ex(token);
+    zend_hash_get_current_key_ex(Z_ARRVAL_P(tokens), &string_key, &string_key_len, &index, 0, &pos);
+
+    t = php_trim(Z_STRVAL_PP(token), Z_STRLEN_PP(token), NULL, 0, NULL, 3 TSRMLS_CC);
+
+    int type = NULL;
+    const char *k;
+    php_dql_keyword_map *mapping;
+    for (mapping = php_dql_tokens; mapping->keywords != NULL; mapping++) {
+      for (k = mapping->keywords; *k != '\0'; k += (strlen(k) + 1)) {
+        if (strcasecmp(k, t) == 0) {
+          type = mapping->code;
+          break;
+        }
+      }
+    }
+
+    switch (type) {
+      case DQL_TOKEN_BASE:
+        p = t;
+        add_assoc_stringl(return_value, t, "", 0, 1);
+        break;
+      case DQL_TOKEN_BY:
+        if (zend_hash_index_find(Z_ARRVAL_P(tokens), index + 1, (void **)&next) == SUCCESS && strcasecmp("by", Z_STRVAL_PP(next)) == 0) {
+          p = t;
+          add_assoc_stringl(return_value, t, "", 0, 1);
+        } else {
+          zend_hash_find(Z_ARRVAL_P(return_value), p, strlen(p), (void **)&pre);
+
+          smart_str s = {0};
+          if (zend_hash_find(Z_ARRVAL_P(return_value), p, strlen(p) + 1, (void **)&pre) == SUCCESS) {
+            smart_str_appendl(&s, Z_STRVAL_PP(pre), Z_STRLEN_PP(pre));
+          }
+          smart_str_appendl(&s, t, strlen(t));
+          smart_str_appendl(&s, " ", 1);
+          smart_str_0(&s);
+
+          add_assoc_stringl(return_value, p, s.c, s.len, 1);
+        }
+        break;
+      case DQL_TOKEN_PASS:
+        zend_hash_move_forward_ex(Z_ARRVAL_P(tokens), &pos);
+        continue;
+      default:
+        if (p == NULL) {
+          php_error_docref(NULL TSRMLS_CC, E_ERROR, "Couldn't tokenize query.");
+        }
+
+        smart_str s = {0};
+        if (zend_hash_find(Z_ARRVAL_P(return_value), p, strlen(p) + 1, (void **)&pre) == SUCCESS) {
+          smart_str_appendl(&s, Z_STRVAL_PP(pre), Z_STRLEN_PP(pre));
+        } else {
+          php_var_dump(&return_value, 1 TSRMLS_CC);
+        }
+        smart_str_appendl(&s, t, strlen(t));
+        smart_str_appendl(&s, " ", 1);
+        smart_str_0(&s);
+
+        add_assoc_stringl(return_value, p, s.c, s.len, 1);
+    }
+
+    zend_hash_move_forward_ex(Z_ARRVAL_P(tokens), &pos);
+  }
 }
 
 static PHP_FUNCTION(dql_bracket_trim)

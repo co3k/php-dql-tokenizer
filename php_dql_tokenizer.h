@@ -86,4 +86,35 @@ extern zend_module_entry dql_tokenizer_module_entry;
   PHP_DQL_FUNC_HELPER(funcname, retval, thisptr, 4, param4);  \
   DQL_POP_PARAM(); DQL_POP_PARAM(); DQL_POP_PARAM();
 
+/* DQL_TOKEN_* */
+
+#define DQL_TOKEN_BASE (1<< 0)
+#define DQL_TOKEN_BY (1<< 1)
+#define DQL_TOKEN_PASS (1<< 2)
+#define DQL_TOKEN_UNDEFINED (1<< 3)
+
+typedef struct _php_dql_keyword_map {
+  const char *keywords;
+  int code;
+} php_dql_keyword_map;
+
+php_dql_keyword_map php_dql_tokens[] = {
+  {
+    "delete\0update\0select\0set\0from\0where\0limit\0offset\0having\0",
+    DQL_TOKEN_BASE
+  },
+  {
+    "order\0group\0",
+    DQL_TOKEN_BY
+  },
+  {
+    "by\0",
+    DQL_TOKEN_PASS
+  },
+  {
+    NULL,
+    DQL_TOKEN_UNDEFINED
+  }
+};
+
 #endif  /* end of "ifndef  PHP_DQL_TOKENIZER_H" */
