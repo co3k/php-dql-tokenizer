@@ -10,6 +10,62 @@
 ZEND_GET_MODULE(dql_tokenizer)
 #endif
 
+static void _dql_merge_bracket_terms(zval *return_value, zval *terms)
+{
+  zval **val, **data;
+  int i = 0, string_key_len;;
+  char *string_key;
+  ulong key;
+  HashPosition pos;
+
+  array_init(return_value);
+
+  zend_hash_internal_pointer_reset_ex(Z_ARRVAL_P(terms), &pos);
+  while (zend_hash_get_current_data_ex(Z_ARRVAL_P(terms), (void **)&val, &pos) == SUCCESS) {
+    zval **v0, **v1, **v2;
+    int count = 0;
+    zend_hash_index_find(Z_ARRVAL_PP(val), 0, (void **)&v0); convert_to_string_ex(v0);
+    zend_hash_index_find(Z_ARRVAL_PP(val), 1, (void **)&v1); convert_to_string_ex(v1);
+    zend_hash_index_find(Z_ARRVAL_PP(val), 2, (void **)&v2); convert_to_long_ex(v2);
+
+    if (zend_hash_index_find(Z_ARRVAL_P(return_value), i, (void **)&data) == FAILURE) {
+      zval *tmp; MAKE_STD_ZVAL(tmp); array_init(tmp);
+
+      count = Z_LVAL_PP(v2);
+
+      add_next_index_stringl(tmp, Z_STRVAL_PP(v0), Z_STRLEN_PP(v0), 1);
+      add_next_index_stringl(tmp, Z_STRVAL_PP(v1), Z_STRLEN_PP(v1), 1);
+      add_next_index_long(tmp, count);
+
+      add_index_zval(return_value, i, tmp);
+    } else {
+      zval **d0, **d1, **d2;
+      smart_str s = {0};
+
+      zend_hash_index_find(Z_ARRVAL_PP(data), 0, (void **)&d0); convert_to_string_ex(d0);
+      zend_hash_index_find(Z_ARRVAL_PP(data), 1, (void **)&d1); convert_to_string_ex(d1);
+      zend_hash_index_find(Z_ARRVAL_PP(data), 2, (void **)&d2); convert_to_long_ex(d2);
+
+      smart_str_appendl(&s, Z_STRVAL_PP(d0), Z_STRLEN_PP(d0));
+      smart_str_appendl(&s, Z_STRVAL_PP(d1), Z_STRLEN_PP(d1));
+      smart_str_appendl(&s, Z_STRVAL_PP(v0), Z_STRLEN_PP(v0));
+      smart_str_0(&s);
+
+      count = Z_LVAL_PP(d2) + Z_LVAL_PP(v2);
+
+      add_index_stringl(*data, 0, s.c, s.len, 1);
+      add_index_stringl(*data, 1, Z_STRVAL_PP(v1), Z_STRLEN_PP(v1), 1);
+      add_index_long(*data, 2, count);
+    }
+
+    if (0 == count) {
+      i++;
+    }
+
+    zend_hash_move_forward_ex(Z_ARRVAL_P(terms), &pos);
+  }
+}
+
 static void _dql_clause_explode_non_quoted(zval *this_ptr, zval *return_value, char *str, char *regexp)
 {
   TSRMLS_FETCH();
@@ -642,9 +698,8 @@ static PHP_FUNCTION(dql_clause_explode_regexp)
   array_init(return_value);
 
   zval *tmpTerms; MAKE_STD_ZVAL(tmpTerms);
-
   _dql_clause_explode_count_brackets(this_ptr, tmpTerms, str, regexp, e1, e2);
-  zend_function *func; PHP_DQL_FUNC1(dql_merge_bracket_terms, return_value, this_ptr, tmpTerms);
+  _dql_merge_bracket_terms(return_value, tmpTerms);
 
   zval **val;
   HashPosition pos;
@@ -682,62 +737,13 @@ static PHP_FUNCTION(dql_clause_explode_non_quoted)
 
 static PHP_FUNCTION(dql_merge_bracket_terms)
 {
-  zval *terms, **val, **data;
-  int i = 0, string_key_len;;
-  char *string_key;
-  ulong key;
-  HashPosition pos;
-
-  array_init(return_value);
+  zval *terms;
 
   if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "a", &terms)) {
     return;
   }
 
-  zend_hash_internal_pointer_reset_ex(Z_ARRVAL_P(terms), &pos);
-  while (zend_hash_get_current_data_ex(Z_ARRVAL_P(terms), (void **)&val, &pos) == SUCCESS) {
-    zval **v0, **v1, **v2;
-    int count = 0;
-    zend_hash_index_find(Z_ARRVAL_PP(val), 0, (void **)&v0); convert_to_string_ex(v0);
-    zend_hash_index_find(Z_ARRVAL_PP(val), 1, (void **)&v1); convert_to_string_ex(v1);
-    zend_hash_index_find(Z_ARRVAL_PP(val), 2, (void **)&v2); convert_to_long_ex(v2);
-
-    if (zend_hash_index_find(Z_ARRVAL_P(return_value), i, (void **)&data) == FAILURE) {
-      zval *tmp; MAKE_STD_ZVAL(tmp); array_init(tmp);
-
-      count = Z_LVAL_PP(v2);
-
-      add_next_index_stringl(tmp, Z_STRVAL_PP(v0), Z_STRLEN_PP(v0), 1);
-      add_next_index_stringl(tmp, Z_STRVAL_PP(v1), Z_STRLEN_PP(v1), 1);
-      add_next_index_long(tmp, count);
-
-      add_index_zval(return_value, i, tmp);
-    } else {
-      zval **d0, **d1, **d2;
-      smart_str s = {0};
-
-      zend_hash_index_find(Z_ARRVAL_PP(data), 0, (void **)&d0); convert_to_string_ex(d0);
-      zend_hash_index_find(Z_ARRVAL_PP(data), 1, (void **)&d1); convert_to_string_ex(d1);
-      zend_hash_index_find(Z_ARRVAL_PP(data), 2, (void **)&d2); convert_to_long_ex(d2);
-
-      smart_str_appendl(&s, Z_STRVAL_PP(d0), Z_STRLEN_PP(d0));
-      smart_str_appendl(&s, Z_STRVAL_PP(d1), Z_STRLEN_PP(d1));
-      smart_str_appendl(&s, Z_STRVAL_PP(v0), Z_STRLEN_PP(v0));
-      smart_str_0(&s);
-
-      count = Z_LVAL_PP(d2) + Z_LVAL_PP(v2);
-
-      add_index_stringl(*data, 0, s.c, s.len, 1);
-      add_index_stringl(*data, 1, Z_STRVAL_PP(v1), Z_STRLEN_PP(v1), 1);
-      add_index_long(*data, 2, count);
-    }
-
-    if (0 == count) {
-      i++;
-    }
-
-    zend_hash_move_forward_ex(Z_ARRVAL_P(terms), &pos);
-  }
+  _dql_merge_bracket_terms(return_value, terms);
 }
 
 static PHP_FUNCTION(dql_quoted_string_explode)
