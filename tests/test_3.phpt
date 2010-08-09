@@ -1,5 +1,5 @@
 --TEST--
-Test for dql_quote_explode()
+Test for dql_clause_explode()
 --FILE--
 <?php
 $str = "(age < 20 AND age > 18) AND name LIKE 'John'+' Doe'";

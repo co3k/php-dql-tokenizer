@@ -378,6 +378,33 @@ static void _dql_clause_explode_count_brackets(zval *this_ptr, zval *return_valu
   }
 }
 
+static void _dql_clause_explode_regexp(zval *this_ptr, zval *return_value, char *str, char *regexp, char *e1, char *e2)
+{
+  if (e1 == NULL)
+  {
+    e1 = "(";
+  }
+  if (e2 == NULL)
+  {
+    e2 = ")";
+  }
+
+  array_init(return_value);
+
+  zval *tmpTerms; MAKE_STD_ZVAL(tmpTerms);
+  _dql_clause_explode_count_brackets(this_ptr, tmpTerms, str, regexp, e1, e2);
+  _dql_merge_bracket_terms(return_value, tmpTerms);
+
+  zval **val;
+  HashPosition pos;
+
+  zend_hash_internal_pointer_reset_ex(Z_ARRVAL_P(return_value), &pos);
+  while (zend_hash_get_current_data_ex(Z_ARRVAL_P(return_value), (void **)&val, &pos) == SUCCESS) {
+    zend_hash_index_del(Z_ARRVAL_PP(val), 2);
+    zend_hash_move_forward_ex(Z_ARRVAL_P(return_value), &pos);
+  }
+}
+
 static PHP_FUNCTION(dql_tokenize_query)
 {
   char *query;
@@ -518,13 +545,9 @@ static PHP_FUNCTION(dql_bracket_explode)
   smart_str_appendl(&s, "i", 1);
   smart_str_0(&s);
 
-  zval *terms, *tmpStr, *tmpE1, *tmpE2, *tmpRegexp;
+  zval *terms;
   MAKE_STD_ZVAL(terms);
-  MAKE_STD_ZVAL(tmpStr); ZVAL_STRING(tmpStr, str, 1);
-  MAKE_STD_ZVAL(tmpE1); ZVAL_STRING(tmpE1, e1, 1);
-  MAKE_STD_ZVAL(tmpE2); ZVAL_STRING(tmpE2, e2, 1);
-  MAKE_STD_ZVAL(tmpRegexp); ZVAL_STRINGL(tmpRegexp, s.c, s.len, 1);
-  zend_function *func; PHP_DQL_FUNC4(dql_clause_explode_regexp, terms, this_ptr, tmpStr, tmpRegexp, tmpE1, tmpE2);
+  _dql_clause_explode_regexp(this_ptr, terms, str, s.c, e1, e2);
 
   zval **val;
   HashPosition pos;
@@ -659,14 +682,8 @@ static PHP_FUNCTION(dql_clause_explode)
     return;
   }
 
-  MAKE_STD_ZVAL(tmpStr); ZVAL_STRING(tmpStr, str, 1);
-  MAKE_STD_ZVAL(tmpE1); ZVAL_STRING(tmpE1, e1, 1);
-  MAKE_STD_ZVAL(tmpE2); ZVAL_STRING(tmpE2, e2, 1);
-
   regexp = _dql_get_split_regexp_from_array(this_ptr, Z_ARRVAL_P(d));
-  MAKE_STD_ZVAL(tmpRegexp); ZVAL_STRINGL(tmpRegexp, regexp, strlen(regexp), 1);
-
-  zend_function *func; PHP_DQL_FUNC4(dql_clause_explode_regexp, return_value, this_ptr, tmpStr, tmpRegexp, tmpE1, tmpE2);
+  _dql_clause_explode_regexp(this_ptr, return_value, str, regexp, e1, e2);
 }
 
 static PHP_FUNCTION(dql_get_split_regexp_from_array)
@@ -695,20 +712,7 @@ static PHP_FUNCTION(dql_clause_explode_regexp)
     return;
   }
 
-  array_init(return_value);
-
-  zval *tmpTerms; MAKE_STD_ZVAL(tmpTerms);
-  _dql_clause_explode_count_brackets(this_ptr, tmpTerms, str, regexp, e1, e2);
-  _dql_merge_bracket_terms(return_value, tmpTerms);
-
-  zval **val;
-  HashPosition pos;
-
-  zend_hash_internal_pointer_reset_ex(Z_ARRVAL_P(return_value), &pos);
-  while (zend_hash_get_current_data_ex(Z_ARRVAL_P(return_value), (void **)&val, &pos) == SUCCESS) {
-    zend_hash_index_del(Z_ARRVAL_PP(val), 2);
-    zend_hash_move_forward_ex(Z_ARRVAL_P(return_value), &pos);
-  }
+  _dql_clause_explode_regexp(this_ptr, return_value, str, regexp, e1, e2);
 }
 
 static PHP_FUNCTION(dql_clause_explode_count_brackets)

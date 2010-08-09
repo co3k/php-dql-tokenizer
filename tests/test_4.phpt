@@ -1,5 +1,5 @@
 --TEST--
-Test for dql_clause_explode()
+Test for dql_quote_explode()
 --FILE--
 <?php
 $str = "email LIKE 'John@example.com'";
