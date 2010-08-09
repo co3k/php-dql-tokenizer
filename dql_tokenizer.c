@@ -10,6 +10,18 @@
 ZEND_GET_MODULE(dql_tokenizer)
 #endif
 
+/* {{{ PHP_MINFO_FUNCTION(dql_tokenizer) */
+static PHP_MINFO_FUNCTION(dql_tokenizer)
+{
+  php_info_print_table_start();
+  php_info_print_table_row(2, "Version", PHP_DQL_TOKENIZER_EXTVAR);
+  php_info_print_table_row(2, "Build Date", __DATE__ " " __TIME__);
+  php_info_print_table_end();
+  DISPLAY_INI_ENTRIES();
+}
+/* }}} */
+
+
 static void _dql_merge_bracket_terms(zval *return_value, zval *terms)
 {
   zval **val, **data;
@@ -811,7 +823,7 @@ zend_module_entry dql_tokenizer_module_entry = {
   NULL,  /* MSHUTDOWN */
   NULL,  /* RINIT */
   NULL,  /* RSHUTDOWN */
-  NULL,  /* MINFO */
+  PHP_MINFO(dql_tokenizer),
 #if ZEND_MODULE_API_NO >= 20010901
   PHP_DQL_TOKENIZER_EXTVAR,
 #endif
