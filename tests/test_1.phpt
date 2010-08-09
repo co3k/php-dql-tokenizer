@@ -1,7 +1,11 @@
 --TEST--
-Test for fatal error in not-implemented functions
+Test for creating regexp string by dql_get_split_regexp_from_array()
 --FILE--
 <?php
-dql_tokenize_query();
---EXPECTF--
-Fatal error: dql_tokenize_query(): This function is not implemented. Call Doctrine_Query_Tokenizer::tokenizeQuery() instead. in %stest_1.php on line %d
+$result = dql_get_split_regexp_from_array(array(
+  's', 'str', ' ', '\\', '|', '(', '*', 0, true,
+));
+
+var_dump($result);
+--EXPECT--
+string(28) "#(s|str|\s|\\|\||\(|\*|0|1)#"

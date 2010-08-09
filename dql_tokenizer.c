@@ -10,6 +10,56 @@
 ZEND_GET_MODULE(dql_tokenizer)
 #endif
 
+char *_dql_get_split_regexp_from_array(zval *this_ptr, HashTable *ht)
+{
+  zval **entry;
+  HashPosition pos;
+  TSRMLS_FETCH();
+
+  smart_str result = {0};
+  smart_str_appendl(&result, "#(", 2);
+
+  zend_hash_internal_pointer_reset_ex(ht, &pos);
+  while (zend_hash_get_current_data_ex(ht, (void **)&entry, &pos) == SUCCESS) {
+    convert_to_string_ex(entry);
+
+    if (1 <= pos->h) {
+      smart_str_appendl(&result, "|", 1);
+    }
+
+    if (strcmp(" ", Z_STRVAL_PP(entry)) == 0) {
+      smart_str_appendl(&result, "\\s", 2);
+    } else {
+      zval *pre, *filtered;
+      MAKE_STD_ZVAL(pre);
+      ZVAL_STRING(pre, Z_STRVAL_PP(entry), 1);
+      MAKE_STD_ZVAL(filtered);
+
+      /* filtering by zif_preg_quote() */
+      zend_function *func;
+      PHP_DQL_FUNC1(preg_quote, filtered, this_ptr, pre);
+
+      smart_str_appendl(&result, Z_STRVAL_P(filtered), Z_STRLEN_P(filtered));
+
+      zval_ptr_dtor(&pre);
+      zval_ptr_dtor(&filtered);
+    }
+
+    zend_hash_move_forward_ex(ht, &pos);
+  }
+
+  smart_str_appendl(&result, ")#", 2);
+
+  smart_str_0(&result);
+
+  if (result.len) {
+    return result.c;
+  } else {
+    smart_str_free(&result);
+    return NULL;
+  }
+}
+
 static PHP_FUNCTION(dql_tokenize_query)
 {
   char *query;
@@ -144,23 +194,21 @@ static PHP_FUNCTION(dql_bracket_explode)
     ZVAL_ZVAL(_d, d, 1, 1);
   }
 
-  zval *regexp;
-  MAKE_STD_ZVAL(regexp);
-  zend_function *func; PHP_DQL_FUNC1(dql_get_split_regexp_from_array, regexp, this_ptr, _d);
+  char *regexp;
+  regexp = _dql_get_split_regexp_from_array(this_ptr, Z_ARRVAL_P(_d));
 
   smart_str s = {0};
-  smart_str_appendl(&s, Z_STRVAL_P(regexp), Z_STRLEN_P(regexp));
+  smart_str_appendl(&s, regexp, strlen(regexp));
   smart_str_appendl(&s, "i", 1);
   smart_str_0(&s);
 
-  ZVAL_STRINGL(regexp, s.c, s.len, 1);
-
-  zval *terms, *tmpStr, *tmpE1, *tmpE2;
+  zval *terms, *tmpStr, *tmpE1, *tmpE2, *tmpRegexp;
   MAKE_STD_ZVAL(terms);
   MAKE_STD_ZVAL(tmpStr); ZVAL_STRING(tmpStr, str, 1);
   MAKE_STD_ZVAL(tmpE1); ZVAL_STRING(tmpE1, e1, 1);
   MAKE_STD_ZVAL(tmpE2); ZVAL_STRING(tmpE2, e2, 1);
-  PHP_DQL_FUNC4(dql_clause_explode_regexp, terms, this_ptr, tmpStr, regexp, tmpE1, tmpE2);
+  MAKE_STD_ZVAL(tmpRegexp); ZVAL_STRINGL(tmpRegexp, s.c, s.len, 1);
+  zend_function *func; PHP_DQL_FUNC4(dql_clause_explode_regexp, terms, this_ptr, tmpStr, tmpRegexp, tmpE1, tmpE2);
 
   zval **val;
   HashPosition pos;
@@ -206,21 +254,19 @@ static PHP_FUNCTION(dql_quote_explode)
     ZVAL_ZVAL(_d, d, 1, 1);
   }
 
-  zval *regexp;
-  MAKE_STD_ZVAL(regexp);
-  zend_function *func; PHP_DQL_FUNC1(dql_get_split_regexp_from_array, regexp, this_ptr, _d);
+  char *regexp;
+  regexp = _dql_get_split_regexp_from_array(this_ptr, Z_ARRVAL_P(_d));
 
   smart_str s = {0};
-  smart_str_appendl(&s, Z_STRVAL_P(regexp), Z_STRLEN_P(regexp));
+  smart_str_appendl(&s, regexp, strlen(regexp));
   smart_str_appendl(&s, "i", 1);
   smart_str_0(&s);
 
-  ZVAL_STRINGL(regexp, s.c, s.len, 1);
-
-  zval *terms, *tmpStr, *tmpE1, *tmpE2;
+  zval *terms, *tmpStr, *tmpE1, *tmpE2, *tmpRegexp;
   MAKE_STD_ZVAL(terms);
   MAKE_STD_ZVAL(tmpStr); ZVAL_STRING(tmpStr, str, 1);
-  PHP_DQL_FUNC2(dql_clause_explode_count_brackets, terms, this_ptr, tmpStr, regexp);
+  MAKE_STD_ZVAL(tmpRegexp); ZVAL_STRINGL(tmpRegexp, s.c, s.len, 1);
+  zend_function *func; PHP_DQL_FUNC2(dql_clause_explode_count_brackets, terms, this_ptr, tmpStr, tmpRegexp);
 
   zval **val;
   HashPosition pos;
@@ -292,8 +338,8 @@ static PHP_FUNCTION(dql_sql_explode)
 
 static PHP_FUNCTION(dql_clause_explode)
 {
-  zval **d, *regexp, *tmpStr, *tmpE1, *tmpE2;
-  char *str, *e1 = "(", *e2 = ")";
+  zval *d, *tmpRegexp, *tmpStr, *tmpE1, *tmpE2;
+  char *str, *e1 = "(", *e2 = ")", *regexp;
   int str_len, e1_len, e2_len;
 
   if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sa|ss", &str, &str_len, &d, &e1, &e1_len, &e2, &e2_len)) {
@@ -303,60 +349,26 @@ static PHP_FUNCTION(dql_clause_explode)
   MAKE_STD_ZVAL(tmpStr); ZVAL_STRING(tmpStr, str, 1);
   MAKE_STD_ZVAL(tmpE1); ZVAL_STRING(tmpE1, e1, 1);
   MAKE_STD_ZVAL(tmpE2); ZVAL_STRING(tmpE2, e2, 1);
-  MAKE_STD_ZVAL(regexp);
 
-  zend_function *func;
-  PHP_DQL_FUNC1(dql_get_split_regexp_from_array, regexp, this_ptr, d);
-  PHP_DQL_FUNC4(dql_clause_explode_regexp, return_value, this_ptr, tmpStr, regexp, tmpE1, tmpE2);
+  regexp = _dql_get_split_regexp_from_array(this_ptr, Z_ARRVAL_P(d));
+  MAKE_STD_ZVAL(tmpRegexp); ZVAL_STRINGL(tmpRegexp, regexp, strlen(regexp), 1);
+
+  zend_function *func; PHP_DQL_FUNC4(dql_clause_explode_regexp, return_value, this_ptr, tmpStr, tmpRegexp, tmpE1, tmpE2);
 }
 
 static PHP_FUNCTION(dql_get_split_regexp_from_array)
 {
-  zval *array, **entry;
-  HashPosition pos;
-
-  smart_str result = {0};
-  smart_str_appendl(&result, "#(", 2);
+  char *result;
+  zval *array;
 
   if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "a", &array)) {
     return;
   }
 
-  zend_hash_internal_pointer_reset_ex(Z_ARRVAL_P(array), &pos);
-  while (zend_hash_get_current_data_ex(Z_ARRVAL_P(array), (void **)&entry, &pos) == SUCCESS) {
-    convert_to_string_ex(entry);
-
-    if (1 <= pos->h) {
-      smart_str_appendl(&result, "|", 1);
-    }
-
-    if (strcmp(" ", Z_STRVAL_PP(entry)) == 0) {
-      smart_str_appendl(&result, "\\s", 2);
-    } else {
-      zval *pre, *filtered;
-      MAKE_STD_ZVAL(pre);
-      ZVAL_STRING(pre, Z_STRVAL_PP(entry), 1);
-      MAKE_STD_ZVAL(filtered);
-
-      /* filtering by zif_preg_quote() */
-      zend_function *func; PHP_DQL_FUNC1(preg_quote, filtered, this_ptr, pre);
-      smart_str_appendl(&result, Z_STRVAL_P(filtered), Z_STRLEN_P(filtered));
-
-      zval_ptr_dtor(&pre);
-      zval_ptr_dtor(&filtered);
-    }
-
-    zend_hash_move_forward_ex(Z_ARRVAL_P(array), &pos);
-  }
-
-  smart_str_appendl(&result, ")#", 2);
-
-  smart_str_0(&result);
-
-  if (result.len) {
-    RETURN_STRINGL(result.c, result.len, 0);
+  result = _dql_get_split_regexp_from_array(this_ptr, Z_ARRVAL_P(array));
+  if (result) {
+    RETURN_STRINGL(result, strlen(result), 0);
   } else {
-    smart_str_free(&result);
     RETURN_EMPTY_STRING();
   }
 }
