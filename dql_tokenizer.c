@@ -405,6 +405,21 @@ static void _dql_clause_explode_regexp(zval *this_ptr, zval *return_value, char 
   }
 }
 
+static void _dql_clause_explode(zval *this_ptr, zval *return_value, char *str, zval *d, char *e1, char *e2)
+{
+  if (e1 == NULL) {
+    e1 = "(";
+  }
+
+  if (e2 == NULL) {
+    e2 = ")";
+  }
+
+  char *regexp;
+  regexp = _dql_get_split_regexp_from_array(this_ptr, Z_ARRVAL_P(d));
+  _dql_clause_explode_regexp(this_ptr, return_value, str, regexp, e1, e2);
+}
+
 static PHP_FUNCTION(dql_tokenize_query)
 {
   char *query;
@@ -648,13 +663,8 @@ static PHP_FUNCTION(dql_sql_explode)
     ZVAL_ZVAL(_d, d, 1, 1);
   }
 
-  zval *terms, *tmpStr, *tmpE1, *tmpE2;
-  MAKE_STD_ZVAL(terms);
-  MAKE_STD_ZVAL(tmpStr); ZVAL_STRING(tmpStr, str, 1);
-  MAKE_STD_ZVAL(tmpE1); ZVAL_STRING(tmpE1, e1, 1);
-  MAKE_STD_ZVAL(tmpE2); ZVAL_STRING(tmpE2, e2, 1);
-
-  zend_function *func; PHP_DQL_FUNC4(dql_clause_explode, terms, this_ptr, tmpStr, _d, tmpE1, tmpE2);
+  zval *terms; MAKE_STD_ZVAL(terms);
+  _dql_clause_explode(this_ptr, terms, str, _d, e1, e2);
 
   zval **val;
   HashPosition pos;
@@ -674,7 +684,7 @@ static PHP_FUNCTION(dql_sql_explode)
 
 static PHP_FUNCTION(dql_clause_explode)
 {
-  zval *d, *tmpRegexp, *tmpStr, *tmpE1, *tmpE2;
+  zval *d;
   char *str, *e1 = "(", *e2 = ")", *regexp;
   int str_len, e1_len, e2_len;
 
@@ -682,8 +692,7 @@ static PHP_FUNCTION(dql_clause_explode)
     return;
   }
 
-  regexp = _dql_get_split_regexp_from_array(this_ptr, Z_ARRVAL_P(d));
-  _dql_clause_explode_regexp(this_ptr, return_value, str, regexp, e1, e2);
+  _dql_clause_explode(this_ptr, return_value, str, d, e1, e2);
 }
 
 static PHP_FUNCTION(dql_get_split_regexp_from_array)
