@@ -358,6 +358,9 @@ static void _dql_clause_explode_count_brackets(zval *this_ptr, zval *return_valu
         add_next_index_zval(subterms, _v);
 
         zend_hash_move_forward_ex(Z_ARRVAL_P(_subterms), &sub_pos);
+        zval_ptr_dtor(&c1);
+        zval_ptr_dtor(&c2);
+        zval_ptr_dtor(&ts);
       }
 
       if (i > 0) {
@@ -366,7 +369,7 @@ static void _dql_clause_explode_count_brackets(zval *this_ptr, zval *return_valu
           zend_hash_index_find(Z_ARRVAL_PP(pterms), 1, (void **)&pt1);
           convert_to_string_ex(pt1);
           if (0 == Z_STRLEN_PP(pt1)) {
-            zval *first, **f0, **f1, **f2, *uba;
+            zval *first, **f0, **f1, **f2;
             smart_str s = {0};
             MAKE_STD_ZVAL(first);
 
@@ -388,16 +391,24 @@ static void _dql_clause_explode_count_brackets(zval *this_ptr, zval *return_valu
             add_index_long(*pterms, 2, Z_LVAL_PP(pt2) + Z_LVAL_PP(f2));
 
             smart_str_free(&s);
+            zval_ptr_dtor(&first);
           }
         }
       }
 
       php_array_merge(Z_ARRVAL_P(return_value), Z_ARRVAL_P(subterms), 0 TSRMLS_CC);
       i += zend_hash_num_elements(Z_ARRVAL_P(subterms));
+
+      zval_ptr_dtor(&subterms);
+      zval_ptr_dtor(&_subterms);
     }
 
     zend_hash_move_forward_ex(Z_ARRVAL_P(quoteTerms), &pos);
   }
+
+  zval_ptr_dtor(&quoteTerms);
+  zval_ptr_dtor(&tmpE1);
+  zval_ptr_dtor(&tmpE2);
 }
 
 static void _dql_clause_explode_regexp(zval *this_ptr, zval *return_value, char *str, char *regexp, char *e1, char *e2)
@@ -425,6 +436,8 @@ static void _dql_clause_explode_regexp(zval *this_ptr, zval *return_value, char 
     zend_hash_index_del(Z_ARRVAL_PP(val), 2);
     zend_hash_move_forward_ex(Z_ARRVAL_P(return_value), &pos);
   }
+
+  zval_ptr_dtor(&tmpTerms);
 }
 
 static void _dql_clause_explode(zval *this_ptr, zval *return_value, char *str, zval *d, char *e1, char *e2)
@@ -444,7 +457,8 @@ static void _dql_clause_explode(zval *this_ptr, zval *return_value, char *str, z
 
 static void _dql_sql_explode(zval *this_ptr, zval *return_value, char *str, zval *d, char *e1, char *e2)
 {
-  zval *_d;
+  zval *_d, *terms;
+  MAKE_STD_ZVAL(_d); MAKE_STD_ZVAL(terms);
 
   if (e1 == NULL) {
     e1 = "(";
@@ -454,25 +468,21 @@ static void _dql_sql_explode(zval *this_ptr, zval *return_value, char *str, zval
     e2 = ")";
   }
 
-  if (d == NULL)
-  {
-    MAKE_STD_ZVAL(d);
-    ZVAL_STRING(d, " ", 1);
-  }
-
-  MAKE_STD_ZVAL(_d);
-  if (IS_STRING == Z_TYPE(*d))
+  if (d == NULL || IS_STRING == Z_TYPE(*d))
   {
     array_init(_d);
 
-    add_next_index_stringl(_d, Z_STRVAL_P(d), Z_STRLEN_P(d), 1);
+    if (d == NULL) {
+      add_next_index_stringl(_d, " ", 1, 1);
+    } else {
+      add_next_index_stringl(_d, Z_STRVAL_P(d), Z_STRLEN_P(d), 1);
+    }
   }
   else
   {
     ZVAL_ZVAL(_d, d, 1, 1);
   }
 
-  zval *terms; MAKE_STD_ZVAL(terms);
   _dql_clause_explode(this_ptr, terms, str, _d, e1, e2);
 
   zval **val;
@@ -489,6 +499,8 @@ static void _dql_sql_explode(zval *this_ptr, zval *return_value, char *str, zval
 
     zend_hash_move_forward_ex(Z_ARRVAL_P(terms), &pos);
   }
+
+  zval_ptr_dtor(&_d); zval_ptr_dtor(&terms);
 }
 
 static PHP_FUNCTION(dql_tokenize_query)
@@ -579,6 +591,8 @@ static PHP_FUNCTION(dql_tokenize_query)
 
     zend_hash_move_forward_ex(Z_ARRVAL_P(tokens), &pos);
   }
+
+  zval_ptr_dtor(&tokens);
 }
 
 static PHP_FUNCTION(dql_bracket_trim)
@@ -653,6 +667,7 @@ static PHP_FUNCTION(dql_bracket_explode)
   }
 
   smart_str_free(&s);
+  zval_ptr_dtor(&d);
 }
 
 static PHP_FUNCTION(dql_quote_explode)
@@ -710,6 +725,7 @@ static PHP_FUNCTION(dql_quote_explode)
   }
 
   smart_str_free(&s);
+  zval_ptr_dtor(&d);
 }
 
 static PHP_FUNCTION(dql_sql_explode)
