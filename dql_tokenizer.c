@@ -68,6 +68,8 @@ static void _dql_merge_bracket_terms(zval *return_value, zval *terms)
       add_index_stringl(*data, 0, s.c, s.len, 1);
       add_index_stringl(*data, 1, Z_STRVAL_PP(v1), Z_STRLEN_PP(v1), 1);
       add_index_long(*data, 2, count);
+
+      smart_str_free(&s);
     }
 
     if (0 == count) {
@@ -180,6 +182,8 @@ static void _dql_quoted_string_explode(zval *this_ptr, zval *return_value, char 
           smart_str_0(&s);
 
           add_index_stringl(return_value, i, s.c, s.len, 1);
+
+          smart_str_free(&s);
         }
 
         mode = '\0';
@@ -200,6 +204,8 @@ static void _dql_quoted_string_explode(zval *this_ptr, zval *return_value, char 
       smart_str_0(&s);
 
       add_index_stringl(return_value, i, s.c, s.len, 1);
+
+      smart_str_free(&s);
     }
 
     zend_hash_move_forward_ex(Z_ARRVAL_P(tmp), &pos);
@@ -306,6 +312,8 @@ static void _dql_clause_explode_count_brackets(zval *this_ptr, zval *return_valu
             smart_str_0(&s);
 
             add_index_stringl(*pterms, 0, s.c, s.len, 1);
+
+            smart_str_free(&s);
           } else {
             zval *tmpArr;
             MAKE_STD_ZVAL(tmpArr);
@@ -378,6 +386,8 @@ static void _dql_clause_explode_count_brackets(zval *this_ptr, zval *return_valu
             add_index_stringl(*pterms, 0, s.c, s.len, 1);
             add_index_stringl(*pterms, 1, Z_STRVAL_PP(f1), Z_STRLEN_PP(f1), 1);
             add_index_long(*pterms, 2, Z_LVAL_PP(pt2) + Z_LVAL_PP(f2));
+
+            smart_str_free(&s);
           }
         }
       }
@@ -542,6 +552,8 @@ static PHP_FUNCTION(dql_tokenize_query)
           smart_str_0(&s);
 
           add_assoc_stringl(return_value, p, s.c, s.len, 1);
+
+          smart_str_free(&s);
         }
         break;
       case DQL_TOKEN_PASS:
@@ -561,6 +573,8 @@ static PHP_FUNCTION(dql_tokenize_query)
         smart_str_0(&s);
 
         add_assoc_stringl(return_value, p, s.c, s.len, 1);
+
+        smart_str_free(&s);
     }
 
     zend_hash_move_forward_ex(Z_ARRVAL_P(tokens), &pos);
@@ -637,6 +651,8 @@ static PHP_FUNCTION(dql_bracket_explode)
 
     zend_hash_move_forward_ex(Z_ARRVAL_P(terms), &pos);
   }
+
+  smart_str_free(&s);
 }
 
 static PHP_FUNCTION(dql_quote_explode)
@@ -692,6 +708,8 @@ static PHP_FUNCTION(dql_quote_explode)
 
     zend_hash_move_forward_ex(Z_ARRVAL_P(terms), &pos);
   }
+
+  smart_str_free(&s);
 }
 
 static PHP_FUNCTION(dql_sql_explode)
