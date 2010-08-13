@@ -46,8 +46,6 @@ static void _dql_merge_bracket_terms(zval *return_value, zval *terms)
   ulong key;
   HashPosition pos;
 
-  array_init(return_value);
-
   zend_hash_internal_pointer_reset_ex(Z_ARRVAL_P(terms), &pos);
   while (zend_hash_get_current_data_ex(Z_ARRVAL_P(terms), (void **)&val, &pos) == SUCCESS) {
     zval **v0, **v1, **v2;
@@ -115,8 +113,6 @@ static void _dql_clause_explode_non_quoted(zval *this_ptr, zval *return_value, c
   ulong key;
   HashPosition pos;
 
-  array_init(return_value);
-
   zend_hash_internal_pointer_reset_ex(Z_ARRVAL_P(tmp), &pos);
   while (zend_hash_get_current_data_ex(Z_ARRVAL_P(tmp), (void **)&val, &pos) == SUCCESS) {
     convert_to_string_ex(val);
@@ -168,8 +164,6 @@ static void _dql_quoted_string_explode(zval *this_ptr, zval *return_value, char 
   ulong key;
   zval **val, **data;
   HashPosition pos;
-
-  array_init(return_value);
 
   zend_hash_internal_pointer_reset_ex(Z_ARRVAL_P(tmp), &pos);
   while (zend_hash_get_current_data_ex(Z_ARRVAL_P(tmp), (void **)&val, &pos) == SUCCESS) {
@@ -295,9 +289,7 @@ static void _dql_clause_explode_count_brackets(zval *this_ptr, zval *return_valu
     e2 = ")";
   }
 
-  array_init(return_value);
-
-  zval *quoteTerms; MAKE_STD_ZVAL(quoteTerms);
+  zval *quoteTerms; MAKE_STD_ZVAL(quoteTerms); array_init(quoteTerms);
   _dql_quoted_string_explode(this_ptr, quoteTerms, str);
 
   char  *string_key;
@@ -345,7 +337,7 @@ static void _dql_clause_explode_count_brackets(zval *this_ptr, zval *return_valu
     } else {
       zval *subterms, *_subterms;
       MAKE_STD_ZVAL(subterms); array_init(subterms);
-      MAKE_STD_ZVAL(_subterms);
+      MAKE_STD_ZVAL(_subterms); array_init(_subterms);
       _dql_clause_explode_non_quoted(this_ptr, _subterms, Z_STRVAL_PP(val), regexp);
 
       char  *sub_string_key;
@@ -438,8 +430,7 @@ static void _dql_clause_explode_regexp(zval *this_ptr, zval *return_value, char 
     e2 = ")";
   }
 
-  array_init(return_value);
-  zval *tmpTerms; MAKE_STD_ZVAL(tmpTerms);
+  zval *tmpTerms; MAKE_STD_ZVAL(tmpTerms); array_init(tmpTerms);
   _dql_clause_explode_count_brackets(this_ptr, tmpTerms, str, regexp, e1, e2);
   _dql_merge_bracket_terms(return_value, tmpTerms);
 
@@ -500,6 +491,7 @@ static void _dql_sql_explode(zval *this_ptr, zval *return_value, char *str, zval
     ZVAL_ZVAL(_d, d, 1, 1);
   }
 
+  array_init(terms);
   _dql_clause_explode(this_ptr, terms, str, _d, e1, e2);
 
   zval **val;
@@ -560,14 +552,19 @@ static PHP_FUNCTION(dql_tokenize_query)
       }
     }
 
+    char *_p = p;
     switch (type) {
       case DQL_TOKEN_BASE:
-        p = t;
+        efree(_p);
+
+        p = estrndup(t, strlen(t));
         add_assoc_stringl(return_value, t, "", 0, 1);
         break;
       case DQL_TOKEN_BY:
         if (zend_hash_index_find(Z_ARRVAL_P(tokens), index + 1, (void **)&next) == SUCCESS && strcasecmp("by", Z_STRVAL_PP(next)) == 0) {
-          p = t;
+          efree(_p);
+
+          p = estrndup(t, strlen(t));
           add_assoc_stringl(return_value, t, "", 0, 1);
         } else {
           zend_hash_find(Z_ARRVAL_P(return_value), p, strlen(p), (void **)&pre);
@@ -586,6 +583,7 @@ static PHP_FUNCTION(dql_tokenize_query)
         }
         break;
       case DQL_TOKEN_PASS:
+        efree(t);
         zend_hash_move_forward_ex(Z_ARRVAL_P(tokens), &pos);
         continue;
       default:
@@ -606,9 +604,11 @@ static PHP_FUNCTION(dql_tokenize_query)
         smart_str_free(&s);
     }
 
+    efree(t);
     zend_hash_move_forward_ex(Z_ARRVAL_P(tokens), &pos);
   }
 
+  efree(p);
   zval_ptr_dtor(&tokens);
 }
 
@@ -638,22 +638,20 @@ static PHP_FUNCTION(dql_bracket_explode)
     return;
   }
 
+  MAKE_STD_ZVAL(_d);
   if (d == NULL)
   {
-    MAKE_STD_ZVAL(d);
-    ZVAL_STRING(d, " ", 1);
+    array_init(_d);
+    add_next_index_stringl(_d, " ", 1, 1);
   }
-
-  MAKE_STD_ZVAL(_d);
-  if (IS_STRING == Z_TYPE(*d))
+  else if (IS_STRING == Z_TYPE(*d))
   {
     array_init(_d);
-
     add_next_index_stringl(_d, Z_STRVAL_P(d), Z_STRLEN_P(d), 1);
   }
   else
   {
-    ZVAL_ZVAL(_d, d, 1, 1);
+    ZVAL_ZVAL(_d, d, 1, 0);
   }
 
   char *regexp;
@@ -664,8 +662,7 @@ static PHP_FUNCTION(dql_bracket_explode)
   smart_str_appendl(&s, "i", 1);
   smart_str_0(&s);
 
-  zval *terms;
-  MAKE_STD_ZVAL(terms);
+  zval *terms; MAKE_STD_ZVAL(terms); array_init(terms);
   _dql_clause_explode_regexp(this_ptr, terms, str, s.c, e1, e2);
 
   zval **val;
@@ -684,7 +681,8 @@ static PHP_FUNCTION(dql_bracket_explode)
   }
 
   smart_str_free(&s);
-  zval_ptr_dtor(&d);
+  zval_ptr_dtor(&_d);
+  zval_ptr_dtor(&terms);
   efree(regexp);
 }
 
@@ -698,22 +696,20 @@ static PHP_FUNCTION(dql_quote_explode)
     return;
   }
 
+  MAKE_STD_ZVAL(_d);
   if (d == NULL)
   {
-    MAKE_STD_ZVAL(d);
-    ZVAL_STRING(d, " ", 1);
+    array_init(_d);
+    add_next_index_stringl(_d, " ", 1, 1);
   }
-
-  MAKE_STD_ZVAL(_d);
-  if (IS_STRING == Z_TYPE(*d))
+  else if (IS_STRING == Z_TYPE(*d))
   {
     array_init(_d);
-
     add_next_index_stringl(_d, Z_STRVAL_P(d), Z_STRLEN_P(d), 1);
   }
   else
   {
-    ZVAL_ZVAL(_d, d, 1, 1);
+    ZVAL_ZVAL(_d, d, 1, 0);
   }
 
   char *regexp;
@@ -724,7 +720,7 @@ static PHP_FUNCTION(dql_quote_explode)
   smart_str_appendl(&s, "i", 1);
   smart_str_0(&s);
 
-  zval *terms; MAKE_STD_ZVAL(terms);
+  zval *terms; MAKE_STD_ZVAL(terms); array_init(terms);
   _dql_clause_explode_count_brackets(this_ptr, terms, str, s.c, NULL, NULL);
 
   zval **val;
@@ -743,7 +739,8 @@ static PHP_FUNCTION(dql_quote_explode)
   }
 
   smart_str_free(&s);
-  zval_ptr_dtor(&d);
+  zval_ptr_dtor(&_d);
+  zval_ptr_dtor(&terms);
   efree(regexp);
 }
 
@@ -770,6 +767,7 @@ static PHP_FUNCTION(dql_clause_explode)
     return;
   }
 
+  array_init(return_value);
   _dql_clause_explode(this_ptr, return_value, str, d, e1, e2);
 }
 
@@ -799,6 +797,7 @@ static PHP_FUNCTION(dql_clause_explode_regexp)
     return;
   }
 
+  array_init(return_value);
   _dql_clause_explode_regexp(this_ptr, return_value, str, regexp, e1, e2);
 }
 
@@ -811,6 +810,7 @@ static PHP_FUNCTION(dql_clause_explode_count_brackets)
     return;
   }
 
+  array_init(return_value);
   _dql_clause_explode_count_brackets(this_ptr, return_value, str, regexp, e1, e2);
 }
 
@@ -823,6 +823,7 @@ static PHP_FUNCTION(dql_clause_explode_non_quoted)
     return;
   }
 
+  array_init(return_value);
   _dql_clause_explode_non_quoted(this_ptr, return_value, str, regexp);
 }
 
@@ -834,6 +835,7 @@ static PHP_FUNCTION(dql_merge_bracket_terms)
     return;
   }
 
+  array_init(return_value);
   _dql_merge_bracket_terms(return_value, terms);
 }
 
@@ -846,6 +848,7 @@ static PHP_FUNCTION(dql_quoted_string_explode)
     return;
   }
 
+  array_init(return_value);
   _dql_quoted_string_explode(this_ptr, return_value, str);
 }
 
