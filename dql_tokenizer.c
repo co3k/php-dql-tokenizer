@@ -118,13 +118,10 @@ static void _dql_clause_explode_non_quoted(zval *this_ptr, zval *return_value, c
 
       add_index_zval(return_value, i, tmpArr);
     } else {
-      zval *subarray;
-
+      zval **subarray;
       zend_hash_index_find(Z_ARRVAL_P(return_value), i++, (void **)&subarray);
-      add_index_stringl(Z_ARRVAL_P(subarray), 1, Z_STRVAL_PP(val), Z_STRLEN_PP(val), 1);
-
-      add_index_zval(return_value, i, subarray);
-      zval_ptr_dtor(&subarray);
+      add_index_stringl(*subarray, 1, Z_STRVAL_PP(val), Z_STRLEN_PP(val), 1);
+      add_index_zval(return_value, i, &subarray);
     }
     zend_hash_move_forward_ex(Z_ARRVAL_P(tmp), &pos);
   }
@@ -323,7 +320,7 @@ static void _dql_clause_explode_count_brackets(zval *this_ptr, zval *return_valu
             add_next_index_stringl(tmpArr, "", 0, 1);
             add_next_index_long(tmpArr, 0);
 
-            add_index_zval(pterms, i++, tmpArr);
+            add_index_zval(*pterms, i++, tmpArr);
           }
       }
     } else {
@@ -531,7 +528,7 @@ static PHP_FUNCTION(dql_tokenize_query)
 
     t = php_trim(Z_STRVAL_PP(token), Z_STRLEN_PP(token), NULL, 0, NULL, 3 TSRMLS_CC);
 
-    int type = NULL;
+    int type = DQL_TOKEN_UNDEFINED;
     const char *k;
     php_dql_keyword_map *mapping;
     for (mapping = php_dql_tokens; mapping->keywords != NULL; mapping++) {
