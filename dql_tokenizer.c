@@ -233,6 +233,8 @@ static void _dql_quoted_string_explode(zval *this_ptr, zval *return_value, char 
 
 char *_dql_get_split_regexp_from_array(zval *this_ptr, HashTable *ht)
 {
+  char *retval;
+
   zval **entry;
   HashPosition pos;
   TSRMLS_FETCH();
@@ -270,15 +272,16 @@ char *_dql_get_split_regexp_from_array(zval *this_ptr, HashTable *ht)
   }
 
   smart_str_appendl(&result, ")#", 2);
-
   smart_str_0(&result);
 
   if (result.len) {
-    return result.c;
-  } else {
-    smart_str_free(&result);
-    return NULL;
+    const char *__s = (result.c);
+    retval = estrndup(__s, result.len);
   }
+
+  smart_str_free(&result);
+
+  return retval;
 }
 
 static void _dql_clause_explode_count_brackets(zval *this_ptr, zval *return_value, char *str, char *regexp, char *e1, char *e2)
@@ -436,7 +439,6 @@ static void _dql_clause_explode_regexp(zval *this_ptr, zval *return_value, char 
   }
 
   array_init(return_value);
-
   zval *tmpTerms; MAKE_STD_ZVAL(tmpTerms);
   _dql_clause_explode_count_brackets(this_ptr, tmpTerms, str, regexp, e1, e2);
   _dql_merge_bracket_terms(return_value, tmpTerms);
@@ -466,6 +468,8 @@ static void _dql_clause_explode(zval *this_ptr, zval *return_value, char *str, z
   char *regexp;
   regexp = _dql_get_split_regexp_from_array(this_ptr, Z_ARRVAL_P(d));
   _dql_clause_explode_regexp(this_ptr, return_value, str, regexp, e1, e2);
+
+  efree(regexp);
 }
 
 static void _dql_sql_explode(zval *this_ptr, zval *return_value, char *str, zval *d, char *e1, char *e2)
@@ -681,6 +685,7 @@ static PHP_FUNCTION(dql_bracket_explode)
 
   smart_str_free(&s);
   zval_ptr_dtor(&d);
+  efree(regexp);
 }
 
 static PHP_FUNCTION(dql_quote_explode)
@@ -739,6 +744,7 @@ static PHP_FUNCTION(dql_quote_explode)
 
   smart_str_free(&s);
   zval_ptr_dtor(&d);
+  efree(regexp);
 }
 
 static PHP_FUNCTION(dql_sql_explode)
