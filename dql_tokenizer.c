@@ -133,7 +133,6 @@ static void _dql_clause_explode_non_quoted(zval *this_ptr, zval *return_value, c
       zval **subarray;
       zend_hash_index_find(Z_ARRVAL_P(return_value), i++, (void **)&subarray);
       add_index_stringl(*subarray, 1, Z_STRVAL_PP(val), Z_STRLEN_PP(val), 1);
-      add_index_zval(return_value, i, &subarray);
     }
     zend_hash_move_forward_ex(Z_ARRVAL_P(tmp), &pos);
   }
