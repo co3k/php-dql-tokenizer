@@ -110,27 +110,36 @@ extern zend_module_entry dql_tokenizer_module_entry;
 #define DQL_TOKEN_UNDEFINED (1<< 3)
 
 typedef struct _php_dql_keyword_map {
-  const char *keywords;
-  int code;
+	const char *keywords;
+	int code;
 } php_dql_keyword_map;
 
 php_dql_keyword_map php_dql_tokens[] = {
-  {
-    "delete\0update\0select\0set\0from\0where\0limit\0offset\0having\0",
-    DQL_TOKEN_BASE
-  },
-  {
-    "order\0group\0",
-    DQL_TOKEN_BY
-  },
-  {
-    "by\0",
-    DQL_TOKEN_PASS
-  },
-  {
-    NULL,
-    DQL_TOKEN_UNDEFINED
-  }
+	{
+		"delete\0update\0select\0set\0from\0where\0limit\0offset\0having\0",
+		DQL_TOKEN_BASE
+	},
+	{
+		"order\0group\0",
+		DQL_TOKEN_BY
+	},
+	{
+		"by\0",
+		DQL_TOKEN_PASS
+	},
+	{
+		NULL,
+		DQL_TOKEN_UNDEFINED
+	}
 };
 
 #endif  /* end of "ifndef  PHP_DQL_TOKENIZER_H" */
+
+/*
+ * Local variables:
+ * tab-width: 4
+ * c-basic-offset: 4
+ * End:
+ * vim600: fdm=marker
+ * vim: noet sw=4 ts=4
+ */
