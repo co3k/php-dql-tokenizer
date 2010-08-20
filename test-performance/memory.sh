@@ -1,0 +1,23 @@
+cd test-performance
+php memory.php dql_get_split_regexp_from_array
+php memory.php dql_sql_explode
+php memory.php dql_tokenize_query
+php memory.php dql_bracket_trim
+php memory.php dql_bracket_explode
+php memory.php dql_clause_explode
+php memory.php dql_quote_explode
+php memory.php dql_quoted_string_explode
+php memory.php dql_clause_explode_count_brackets
+php memory.php dql_clause_explode_non_quoted
+php memory.php dql_clause_explode_regexp
+php memory.php dql_merge_bracket_terms
+php memory.php tokenizeA
+php memory.php tokenizeB
+php memory.php tokenizeC
+php memory.php tokenizeD
+php memory.php tokenizeE
+php memory.php tokenizeF
+php memory.php tokenizeG
+php memory.php tokenizeH
+php memory.php tokenizeI
+php memory.php tokenizeJ
