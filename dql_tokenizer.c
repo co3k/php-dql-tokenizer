@@ -14,6 +14,7 @@
  *  limitations under the License.
  */
 
+/* {{{ includes */
 #include "php_dql_tokenizer.h"
 
 #include "ext/standard/php_string.h"
@@ -21,6 +22,7 @@
 #include "ext/standard/php_smart_str.h"
 
 #include "ext/standard/php_var.h"
+/* }}} */
 
 #ifdef COMPILE_DL_DQL_TOKENIZER
 ZEND_GET_MODULE(dql_tokenizer)
@@ -37,7 +39,8 @@ static PHP_MINFO_FUNCTION(dql_tokenizer)
 }
 /* }}} */
 
-
+/* {{{ void _dql_merge_bracket_terms()
+ */
 static void _dql_merge_bracket_terms(zval *return_value, zval *terms)
 {
   zval **val, **data;
@@ -93,7 +96,10 @@ static void _dql_merge_bracket_terms(zval *return_value, zval *terms)
     zend_hash_move_forward_ex(Z_ARRVAL_P(terms), &pos);
   }
 }
+/* }}} */
 
+/* {{{ void _dql_clause_explode_non_quoted()
+ */
 static void _dql_clause_explode_non_quoted(zval *this_ptr, zval *return_value, char *str, char *regexp)
 {
   TSRMLS_FETCH();
@@ -143,7 +149,10 @@ static void _dql_clause_explode_non_quoted(zval *this_ptr, zval *return_value, c
   zval_ptr_dtor(&flags);
   zval_ptr_dtor(&tmp);
 }
+/* }}} */
 
+/* {{{ void _dql_quoted_string_explode()
+ */
 static void _dql_quoted_string_explode(zval *this_ptr, zval *return_value, char *str)
 {
   TSRMLS_FETCH();
@@ -223,7 +232,10 @@ static void _dql_quoted_string_explode(zval *this_ptr, zval *return_value, char 
   zval_ptr_dtor(&flags);
   zval_ptr_dtor(&tmp);
 }
+/* }}} */
 
+/* {{{ char *_dql_get_split_regexp_from_array()
+ */
 char *_dql_get_split_regexp_from_array(zval *this_ptr, HashTable *ht)
 {
   char *retval;
@@ -276,7 +288,10 @@ char *_dql_get_split_regexp_from_array(zval *this_ptr, HashTable *ht)
 
   return retval;
 }
+/* }}} */
 
+/* {{{ void _dql_clause_explode_count_brackets()
+ */
 static void _dql_clause_explode_count_brackets(zval *this_ptr, zval *return_value, char *str, char *regexp, char *e1, char *e2)
 {
   TSRMLS_FETCH();
@@ -417,7 +432,10 @@ static void _dql_clause_explode_count_brackets(zval *this_ptr, zval *return_valu
   zval_ptr_dtor(&tmpE1);
   zval_ptr_dtor(&tmpE2);
 }
+/* }}} */
 
+/* {{{ void _dql_clause_explode_regexp()
+ */
 static void _dql_clause_explode_regexp(zval *this_ptr, zval *return_value, char *str, char *regexp, char *e1, char *e2)
 {
   if (e1 == NULL)
@@ -444,7 +462,10 @@ static void _dql_clause_explode_regexp(zval *this_ptr, zval *return_value, char 
 
   zval_ptr_dtor(&tmpTerms);
 }
+/* }}} */
 
+/* {{{ void _dql_clause_explode()
+ */
 static void _dql_clause_explode(zval *this_ptr, zval *return_value, char *str, zval *d, char *e1, char *e2)
 {
   if (e1 == NULL) {
@@ -461,7 +482,10 @@ static void _dql_clause_explode(zval *this_ptr, zval *return_value, char *str, z
 
   efree(regexp);
 }
+/* }}} */
 
+/* {{{ void _dql_sql_explode()
+ */
 static void _dql_sql_explode(zval *this_ptr, zval *return_value, char *str, zval *d, char *e1, char *e2)
 {
   zval *_d, *terms;
@@ -510,7 +534,10 @@ static void _dql_sql_explode(zval *this_ptr, zval *return_value, char *str, zval
 
   zval_ptr_dtor(&_d); zval_ptr_dtor(&terms);
 }
+/* }}} */
 
+/* {{{ proto array dql_tokenize_query(string query)
+   Splits the given dql query into an array where keys represent different query part names and values are arrays splitted using sqlExplode method */
 static PHP_FUNCTION(dql_tokenize_query)
 {
   char *query;
@@ -610,7 +637,10 @@ static PHP_FUNCTION(dql_tokenize_query)
   efree(p);
   zval_ptr_dtor(&tokens);
 }
+/* }}} */
 
+/* {{{ proto string dql_bracket_trim(string str [, string e1, string e2])
+   Trims brackets from string */
 static PHP_FUNCTION(dql_bracket_trim)
 {
   char *str, *e1 = "(", *e2 = ")";
@@ -626,7 +656,10 @@ static PHP_FUNCTION(dql_bracket_trim)
     RETURN_STRINGL(str, str_len, 1);
   }
 }
+/* }}} */
 
+/* {{{ proto array dql_bracket_explode(string str [, mixed d, string e1, string e2])
+   Explodes a sql expression respecting bracket placement. */
 static PHP_FUNCTION(dql_bracket_explode)
 {
   zval *d = NULL, *_d;
@@ -684,7 +717,10 @@ static PHP_FUNCTION(dql_bracket_explode)
   zval_ptr_dtor(&terms);
   efree(regexp);
 }
+/* }}} */
 
+/* {{{ proto array dql_quote_explode(string str [, mixed d])
+   Explode quotes from string */
 static PHP_FUNCTION(dql_quote_explode)
 {
   zval *d = NULL, *_d;
@@ -742,7 +778,10 @@ static PHP_FUNCTION(dql_quote_explode)
   zval_ptr_dtor(&terms);
   efree(regexp);
 }
+/* }}} */
 
+/* {{{ proto array dql_sql_explode(string str [, mixed d, string e1, string e2])
+   Explodes a string into array using custom brackets and quote delimeters */
 static PHP_FUNCTION(dql_sql_explode)
 {
   zval *d = NULL;
@@ -755,7 +794,10 @@ static PHP_FUNCTION(dql_sql_explode)
 
   _dql_sql_explode(this_ptr, return_value, str, d, e1, e2);
 }
+/* }}} */
 
+/* {{{ proto array dql_clause_explode(string str, array d [, string e1, string e2])
+   Explodes a string into array using custom brackets and quote delimeters */
 static PHP_FUNCTION(dql_clause_explode)
 {
   zval *d;
@@ -769,7 +811,10 @@ static PHP_FUNCTION(dql_clause_explode)
   array_init(return_value);
   _dql_clause_explode(this_ptr, return_value, str, d, e1, e2);
 }
+/* }}} */
 
+/* {{{ proto string dql_get_split_regexp_from_array(array array)
+   Builds regular expression for split from array */
 static PHP_FUNCTION(dql_get_split_regexp_from_array)
 {
   char *result;
@@ -786,7 +831,10 @@ static PHP_FUNCTION(dql_get_split_regexp_from_array)
     RETURN_EMPTY_STRING();
   }
 }
+/* }}} */
 
+/* {{{ proto array dql_clause_explode_regexp(string str, string regexp [, string e1, string e2])
+   Same as clauseExplode, but you give a regexp, which splits the string */
 static PHP_FUNCTION(dql_clause_explode_regexp)
 {
   char *str, *regexp, *e1 = "(", *e2 = ")";
@@ -799,7 +847,10 @@ static PHP_FUNCTION(dql_clause_explode_regexp)
   array_init(return_value);
   _dql_clause_explode_regexp(this_ptr, return_value, str, regexp, e1, e2);
 }
+/* }}} */
 
+/* {{{ proto array dql_clause_explode_count_brackets(string str, string regexp [, string e1, string e2])
+   This function is like clauseExplode, but it doesn't merge bracket terms */
 static PHP_FUNCTION(dql_clause_explode_count_brackets)
 {
   char *str, *regexp, *e1 = "(", *e2 = ")";
@@ -812,7 +863,10 @@ static PHP_FUNCTION(dql_clause_explode_count_brackets)
   array_init(return_value);
   _dql_clause_explode_count_brackets(this_ptr, return_value, str, regexp, e1, e2);
 }
+/* }}} */
 
+/* {{{ proto array dql_clause_explode_non_quoted(string str, string regexp)
+   Explodes a string by the given delimiters, and counts quotes in every term */
 static PHP_FUNCTION(dql_clause_explode_non_quoted)
 {
   char *str, *regexp;
@@ -825,7 +879,10 @@ static PHP_FUNCTION(dql_clause_explode_non_quoted)
   array_init(return_value);
   _dql_clause_explode_non_quoted(this_ptr, return_value, str, regexp);
 }
+/* }}} */
 
+/* {{{ proto array dql_merge_bracket_terms(array terms)
+   This expects input from clauseExplodeNonQuoted */
 static PHP_FUNCTION(dql_merge_bracket_terms)
 {
   zval *terms;
@@ -837,7 +894,10 @@ static PHP_FUNCTION(dql_merge_bracket_terms)
   array_init(return_value);
   _dql_merge_bracket_terms(return_value, terms);
 }
+/* }}} */
 
+/* {{{ proto array dql_quoted_string_explode(string str)
+   Explodes the given string by <quoted words> */
 static PHP_FUNCTION(dql_quoted_string_explode)
 {
   char *str;
@@ -850,7 +910,9 @@ static PHP_FUNCTION(dql_quoted_string_explode)
   array_init(return_value);
   _dql_quoted_string_explode(this_ptr, return_value, str);
 }
+/* }}} */
 
+/* {{{ entry */
 static function_entry dql_tokenizer_functions[] = {
   PHP_FE(dql_tokenize_query, NULL)
   PHP_FE(dql_bracket_trim, NULL)
@@ -867,7 +929,6 @@ static function_entry dql_tokenizer_functions[] = {
   { NULL, NULL, NULL }
 };
 
-/* entry */
 zend_module_entry dql_tokenizer_module_entry = {
 #if ZEND_MODULE_API_NO >= 20010901
   STANDARD_MODULE_HEADER,
@@ -884,3 +945,13 @@ zend_module_entry dql_tokenizer_module_entry = {
 #endif
   STANDARD_MODULE_PROPERTIES
 };
+/* }}} */
+
+/*
+ * Local variables:
+ * tab-width: 4
+ * c-basic-offset: 4
+ * End:
+ * vim600: fdm=marker
+ * vim: noet sw=4 ts=4
+ */
