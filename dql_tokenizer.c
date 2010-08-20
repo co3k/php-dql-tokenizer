@@ -126,15 +126,15 @@ static void _dql_clause_explode_non_quoted(zval *this_ptr, zval *return_value, c
 		zend_hash_get_current_key_ex(Z_ARRVAL_P(tmp), &string_key, &string_key_len, &key, 0, &pos);
 
 		if (!(key & 1)) {
-			zval *tmpArr;
+			zval *tmp_arr;
 
-			MAKE_STD_ZVAL(tmpArr);
-			array_init(tmpArr);
+			MAKE_STD_ZVAL(tmp_arr);
+			array_init(tmp_arr);
 
-			add_next_index_stringl(tmpArr, Z_STRVAL_PP(val), Z_STRLEN_PP(val), 1);
-			add_next_index_stringl(tmpArr, "", 0, 1);
+			add_next_index_stringl(tmp_arr, Z_STRVAL_PP(val), Z_STRLEN_PP(val), 1);
+			add_next_index_stringl(tmp_arr, "", 0, 1);
 
-			add_index_zval(return_value, i, tmpArr);
+			add_index_zval(return_value, i, tmp_arr);
 		} else {
 			zval **subarray;
 			zend_hash_index_find(Z_ARRVAL_P(return_value), i++, (void **)&subarray);
@@ -303,22 +303,22 @@ static void _dql_clause_explode_count_brackets(zval *this_ptr, zval *return_valu
 		e2 = ")";
 	}
 
-	zval *quoteTerms; MAKE_STD_ZVAL(quoteTerms); array_init(quoteTerms);
-	_dql_quoted_string_explode(this_ptr, quoteTerms, str);
+	zval *quote_terms; MAKE_STD_ZVAL(quote_terms); array_init(quote_terms);
+	_dql_quoted_string_explode(this_ptr, quote_terms, str);
 
 	char  *string_key;
 	int i = 0, string_key_len;
-	zval **val, *tmpE1, *tmpE2;
+	zval **val, *tmp_e1, *tmp_e2;
 	ulong key;
 	HashPosition pos;
 
-	MAKE_STD_ZVAL(tmpE1); ZVAL_STRING(tmpE1, e1, 1);
-	MAKE_STD_ZVAL(tmpE2); ZVAL_STRING(tmpE2, e2, 1);
+	MAKE_STD_ZVAL(tmp_e1); ZVAL_STRING(tmp_e1, e1, 1);
+	MAKE_STD_ZVAL(tmp_e2); ZVAL_STRING(tmp_e2, e2, 1);
 
-	zend_hash_internal_pointer_reset_ex(Z_ARRVAL_P(quoteTerms), &pos);
-	while (zend_hash_get_current_data_ex(Z_ARRVAL_P(quoteTerms), (void **)&val, &pos) == SUCCESS) {
+	zend_hash_internal_pointer_reset_ex(Z_ARRVAL_P(quote_terms), &pos);
+	while (zend_hash_get_current_data_ex(Z_ARRVAL_P(quote_terms), (void **)&val, &pos) == SUCCESS) {
 		convert_to_string_ex(val);
-		zend_hash_get_current_key_ex(Z_ARRVAL_P(quoteTerms), &string_key, &string_key_len, &key, 0, &pos);
+		zend_hash_get_current_key_ex(Z_ARRVAL_P(quote_terms), &string_key, &string_key_len, &key, 0, &pos);
 
 		if (key & 1) {
 			zval **pterms, **pt0, **pt1, **pt2;
@@ -337,15 +337,15 @@ static void _dql_clause_explode_count_brackets(zval *this_ptr, zval *return_valu
 
 					smart_str_free(&s);
 				} else {
-					zval *tmpArr;
-					MAKE_STD_ZVAL(tmpArr);
-					array_init(tmpArr);
+					zval *tmp_arr;
+					MAKE_STD_ZVAL(tmp_arr);
+					array_init(tmp_arr);
 
-					add_next_index_stringl(tmpArr, Z_STRVAL_PP(val), Z_STRLEN_PP(val), 1);
-					add_next_index_stringl(tmpArr, "", 0, 1);
-					add_next_index_long(tmpArr, 0);
+					add_next_index_stringl(tmp_arr, Z_STRVAL_PP(val), Z_STRLEN_PP(val), 1);
+					add_next_index_stringl(tmp_arr, "", 0, 1);
+					add_next_index_long(tmp_arr, 0);
 
-					add_index_zval(*pterms, i++, tmpArr);
+					add_index_zval(*pterms, i++, tmp_arr);
 				}
 			}
 		} else {
@@ -362,20 +362,20 @@ static void _dql_clause_explode_count_brackets(zval *this_ptr, zval *return_valu
 
 			zend_hash_internal_pointer_reset_ex(Z_ARRVAL_P(_subterms), &sub_pos);
 			while (zend_hash_get_current_data_ex(Z_ARRVAL_P(_subterms), (void **)&sub, &sub_pos) == SUCCESS) {
-				zval *c1, *c2, *ts, **tmpSub0, **tmpSub1;
+				zval *c1, *c2, *ts, **tmp_sub0, **tmp_sub1;
 				MAKE_STD_ZVAL(c1); MAKE_STD_ZVAL(c2);
 
-				zend_hash_index_find(Z_ARRVAL_PP(sub), 0, (void **)&tmpSub0);
-				zend_hash_index_find(Z_ARRVAL_PP(sub), 1, (void **)&tmpSub1);
-				MAKE_STD_ZVAL(ts); ZVAL_STRING(ts, Z_STRVAL_PP(tmpSub0), 1);
+				zend_hash_index_find(Z_ARRVAL_PP(sub), 0, (void **)&tmp_sub0);
+				zend_hash_index_find(Z_ARRVAL_PP(sub), 1, (void **)&tmp_sub1);
+				MAKE_STD_ZVAL(ts); ZVAL_STRING(ts, Z_STRVAL_PP(tmp_sub0), 1);
 
 				zend_function *func;
-				PHP_DQL_FUNC2(substr_count, c1, this_ptr, ts, tmpE1);
-				PHP_DQL_FUNC2(substr_count, c2, this_ptr, ts, tmpE2);
+				PHP_DQL_FUNC2(substr_count, c1, this_ptr, ts, tmp_e1);
+				PHP_DQL_FUNC2(substr_count, c2, this_ptr, ts, tmp_e2);
 
 				zval *_v; MAKE_STD_ZVAL(_v); array_init(_v);
-				add_next_index_string(_v, Z_STRVAL_PP(tmpSub0), 1);
-				add_next_index_string(_v, Z_STRVAL_PP(tmpSub1), 1);
+				add_next_index_string(_v, Z_STRVAL_PP(tmp_sub0), 1);
+				add_next_index_string(_v, Z_STRVAL_PP(tmp_sub1), 1);
 				add_next_index_long(_v, (Z_LVAL_P(c1) - Z_LVAL_P(c2)));
 				add_next_index_zval(subterms, _v);
 
@@ -425,12 +425,12 @@ static void _dql_clause_explode_count_brackets(zval *this_ptr, zval *return_valu
 			zval_ptr_dtor(&_subterms);
 		}
 
-		zend_hash_move_forward_ex(Z_ARRVAL_P(quoteTerms), &pos);
+		zend_hash_move_forward_ex(Z_ARRVAL_P(quote_terms), &pos);
 	}
 
-	zval_ptr_dtor(&quoteTerms);
-	zval_ptr_dtor(&tmpE1);
-	zval_ptr_dtor(&tmpE2);
+	zval_ptr_dtor(&quote_terms);
+	zval_ptr_dtor(&tmp_e1);
+	zval_ptr_dtor(&tmp_e2);
 }
 /* }}} */
 
@@ -445,9 +445,9 @@ static void _dql_clause_explode_regexp(zval *this_ptr, zval *return_value, char 
 		e2 = ")";
 	}
 
-	zval *tmpTerms; MAKE_STD_ZVAL(tmpTerms); array_init(tmpTerms);
-	_dql_clause_explode_count_brackets(this_ptr, tmpTerms, str, regexp, e1, e2);
-	_dql_merge_bracket_terms(return_value, tmpTerms);
+	zval *tmp_terms; MAKE_STD_ZVAL(tmp_terms); array_init(tmp_terms);
+	_dql_clause_explode_count_brackets(this_ptr, tmp_terms, str, regexp, e1, e2);
+	_dql_merge_bracket_terms(return_value, tmp_terms);
 
 	zval **val;
 	HashPosition pos;
@@ -458,7 +458,7 @@ static void _dql_clause_explode_regexp(zval *this_ptr, zval *return_value, char 
 		zend_hash_move_forward_ex(Z_ARRVAL_P(return_value), &pos);
 	}
 
-	zval_ptr_dtor(&tmpTerms);
+	zval_ptr_dtor(&tmp_terms);
 }
 /* }}} */
 
