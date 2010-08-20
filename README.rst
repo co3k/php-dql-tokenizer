@@ -27,7 +27,5 @@ Kousuke Ebihara
 TODO
 ====
 
-* Test performance
-* There are too allocation of zvals in current functions. It will be pitfall of memory-leak
 * There are many duplicated codes (e.g. iterating hash tables)
 * Some functions are tooooooooooo long
