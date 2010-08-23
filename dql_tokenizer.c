@@ -108,7 +108,7 @@ static void _dql_clause_explode_non_quoted(zval *this_ptr, zval *return_value, c
 	MAKE_STD_ZVAL(pattern); ZVAL_STRING(pattern, regexp, 1);
 	MAKE_STD_ZVAL(input); ZVAL_STRING(input, str, 1);
 	MAKE_STD_ZVAL(limit); ZVAL_LONG(limit, -1);
-	MAKE_STD_ZVAL(flags); ZVAL_LONG(flags, 2); /* PREG_SPLIT_DELIM_CAPTURE */
+	MAKE_STD_ZVAL(flags); ZVAL_LONG(flags, PHP_DQL_PREG_SPLIT_DELIM_CAPTURE);
 	MAKE_STD_ZVAL(tmp);
 
 	zend_function *func; PHP_DQL_FUNC4(preg_split, tmp, this_ptr, pattern, input, limit, flags);
@@ -162,7 +162,7 @@ static void _dql_quoted_string_explode(zval *this_ptr, zval *return_value, char 
 
 	MAKE_STD_ZVAL(input); ZVAL_STRING(input, str, 1);
 	MAKE_STD_ZVAL(limit); ZVAL_LONG(limit, -1);
-	MAKE_STD_ZVAL(flags); ZVAL_LONG(flags, 2); /* PREG_SPLIT_DELIM_CAPTURE */
+	MAKE_STD_ZVAL(flags); ZVAL_LONG(flags, PHP_DQL_PREG_SPLIT_DELIM_CAPTURE);
 	MAKE_STD_ZVAL(tmp);
 
 	zend_function *func; PHP_DQL_FUNC4(preg_split, tmp, this_ptr, pattern, input, limit, flags);

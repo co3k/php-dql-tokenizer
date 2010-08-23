@@ -30,6 +30,9 @@
 extern zend_module_entry dql_tokenizer_module_entry;
 #define phpext_dql_tokenizer_ptr &dql_tokenizer_module_entry
 
+/* See ext/pcre/php_pcre.c */
+#define PHP_DQL_PREG_SPLIT_DELIM_CAPTURE	(1<<1)
+
 /*
  For keeping compatible with PHP 5.2
 */
