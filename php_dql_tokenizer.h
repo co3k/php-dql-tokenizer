@@ -19,7 +19,7 @@
 #define PHP_DQL_TOKENIZER_H
 
 #define PHP_DQL_TOKENIZER_EXTNAME  "dql_tokenizer"
-#define PHP_DQL_TOKENIZER_EXTVAR   "0.1"
+#define PHP_DQL_TOKENIZER_EXTVAR   "0.5.0"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
